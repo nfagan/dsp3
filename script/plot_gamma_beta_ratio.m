@@ -1,8 +1,8 @@
 conf = dsp3.config.load();
 
-meas = 'normalized_power';
-epochs = { 'targacq', 'targon', 'reward' };
-manips = { 'drug_post_v_pre' };
+meas = 'coherence';
+epochs = { 'targacq' };
+manips = { 'standard' };
 clpses = { {'trials', 'monkeys'} };
 kind = 'nanmedian_2';
 is_pro_v_antis = { false };
@@ -11,7 +11,7 @@ is_new_data_sets = { true };
 
 C = allcomb( {epochs, clpses, manips, is_pro_v_antis, is_post_minus_pres, is_new_data_sets} );
 
-DO_SAVE = true;
+DO_SAVE = false;
 
 for idx = 1:size(C, 1)
 
@@ -128,7 +128,7 @@ for i = 1:numel(I)
   end
 
   if ( ~is_pro_v_anti && ~is_post_minus_pre )
-%     set( h, 'YScale','log' );
+    set( h, 'YScale','log' );
   %   set( h, 'ylim', [.92, .99] );
 %     set( h, 'ylim', [0.938, 0.96] );
   end
