@@ -28,6 +28,9 @@ end
 
 totlabs = fcat.from( new_labs );
 
+addcat( totlabs, 'model' );
+setcat( totlabs, 'model', 'lda' );
+
 freqs = transformed.frequencies;
 
 end

@@ -2,7 +2,7 @@ conf = dsp3.config.load();
 
 %%
 
-[rf, rflabs, freqs] = dsp3.get_matrix_rf( 'nondrug\053018' );
+[rf, rflabs, freqs] = dsp3.get_matrix_rf( fullfile('nondrug', '053018') );
 t = -500:50:500;
 
 %%
@@ -11,9 +11,10 @@ date_dir = '053018';
 lda_p = fullfile( conf.PATHS.dsp2_analyses, 'lda', date_dir );
 lda = shared_utils.io.fload( char(shared_utils.io.find(lda_p, '.mat')) );
 transformed = dsp3.get_transformed_lda( lda );
-[rf, rflabs, freqs, t] = dsp3.get_matrix_lda( transformed({'choice', 'targAcq'}) );
+%%
 
-[~, I] = only( rflabs, 'real_percent' );
+[rf, rflabs, freqs, t] = dsp3.get_matrix_lda( transformed({'choice', 'targAcq'}) );
+[~, I] = only( rflabs, 'real_mean' );
 rf = rf(I, :, :);
 
 %%
@@ -38,8 +39,6 @@ combined = dsp3.get_consolidated_data();
 behav = require_fields( combined.trial_data, {'channels', 'regions', 'sites'} );
 
 behav = dsp3.get_subset( behav, drug_type );
-
-behav = dsp2.process.format.rm_bad_days( behav );
 
 pref = dsp3.get_processed_pref_index( behav );
 
@@ -115,6 +114,137 @@ pltcont = each1d( pltcont, spec, @rowops.nanmean );
 
 spectrogram( pltcont, spec );
 
+%%  correlate 2
+
+add_ratio = true;
+
+ts = [ -250, 0 ];
+bands = { [15, 25], [45, 60] };
+bandnames = { 'beta', 'gamma' };
+
+pref = only( pref, {'choice'} );
+
+prefdat = pref.data;
+preflabs = fcat.from( pref.labels );
+
+correlate_each = { 'contexts', 'trialtypes', 'days', 'administration' };
+[newlabs, I, C] = keepeach( preflabs', correlate_each );
+
+mcat = 'model';
+setcat( addcat(newlabs, mcat), mcat, incat(rflabs, mcat) );
+
+t_ind = t >= ts(1) & t <= ts(2);
+
+X = zeros( numel(I) * (numel(bandnames) + add_ratio), 1 );
+Y = zeros( size(X) );
+
+corrlabs = fcat.like( newlabs );
+
+for i = 1:numel(bandnames)
+  f_ind = freqs >= bands{i}(1) & freqs <= bands{i}(2);
+  
+  t_data = squeeze( nanmean(nanmean(rf(:, f_ind, t_ind), 3), 2) );
+  
+  for j = 1:numel(I)
+    pref_ind = I{j};
+    matching_ind = find( rflabs, C(:, j) );
+
+    assert( numel(matching_ind) == 1 && numel(pref_ind) == 1 );
+    
+    stp = (i-1) * numel(I) + j;
+
+    X(stp) = prefdat(pref_ind);
+    Y(stp) = t_data(matching_ind);
+  end
+  
+  setcat( addcat(newlabs, 'band'), 'band', bandnames{i} );
+  append( corrlabs, newlabs );
+end
+
+%   add gamma beta ratio
+if ( add_ratio )
+  gamma_ind = strcmp( bandnames, 'gamma' );
+  beta_ind = strcmp( bandnames, 'beta' );
+
+  assert( ~isempty(gamma_ind) && ~isempty(beta_ind) );
+
+  g_ind = freqs >= bands{gamma_ind}(1) & freqs <= bands{gamma_ind}(2);
+  b_ind = freqs >= bands{beta_ind}(1) & freqs <= bands{beta_ind}(2);
+
+  g_data = squeeze( nanmean(nanmean(rf(:, g_ind, t_ind), 3), 2) );
+  b_data = squeeze( nanmean(nanmean(rf(:, b_ind, t_ind), 3), 2) );
+
+  ratio_data = g_data ./ b_data;
+
+  for j = 1:numel(I)
+    pref_ind = I{j};
+    matching_ind = find( rflabs, C(:, j) );
+
+    assert( numel(matching_ind) == 1 && numel(pref_ind) == 1 );
+
+    stp = i * numel(I) + j;
+
+    X(stp) = prefdat(pref_ind);
+    Y(stp) = ratio_data(matching_ind);
+  end
+
+  setcat( newlabs, 'band', 'gamma_beta_ratio' );
+  append( corrlabs, newlabs );
+end
+
+%%
+
+pltlabs = corrlabs';
+pltx = X;
+plty = Y;
+
+pltbands = { 'beta' };
+% pltbands = combs( corrlabs, 'band' );
+
+[~, I] = only( pltlabs, pltbands );
+
+pltx = pltx(I);
+plty = plty(I);
+
+pl = plotlabeled();
+pl.color_func = @hsv;
+pl.marker_size = 10;
+pl.plot_empties = false;
+pl.fig = figure(1);
+
+panels_are = { 'outcomes', 'drugs', 'band', 'model' };
+groups_are = { 'outcomes', 'administration' };
+
+[axs, ids] = scatter( pl, pltx, plty, pltlabs, groups_are, panels_are );
+
+shared_utils.plot.match_xlims( axs );
+
+for i = 1:numel(ids)
+  ind = ids(i).index;
+  
+  ax = ids(i).axes;
+  
+  x = pltx(ind);
+  y = plty(ind);
+  
+  if ( isempty(x) || isempty(y) ), continue; end
+  
+  [r, p] = corr( x, y, 'rows', 'complete' );
+  ps = polyfit( x, y, 1 );
+  xs = get( ax, 'xtick' );
+  ys = polyval( ps, xs );
+  plot( ax, xs, ys );
+  
+  txt = sprintf( 'R=%0.3f, P=%0.3f', r, p );
+  
+  if ( p < 0.05 ), txt = sprintf( '%s <- *', txt ); end
+  
+  text( ax, xs(end-1), ys(end), txt );   
+  
+end
+
+arrayfun( @(x) xlabel(x, 'Preference'), axs );
+arrayfun( @(x) ylabel(x, '% Correct'), axs );
 
 %%  correlate
 

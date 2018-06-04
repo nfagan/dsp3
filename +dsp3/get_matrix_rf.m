@@ -51,4 +51,7 @@ for i = 1:N
   totdata = [ totdata; mat ];
 end
 
+addcat( totlabs, 'model' );
+setcat( totlabs, 'model', 'random forest' );
+
 end
