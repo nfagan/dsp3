@@ -15,6 +15,6 @@ for i = 1:numel(values)
   values{i} = arrayfun( @(x) x, values{i}, 'un', false );
 end
 
-out = bfw.allcomb( values );
+out = allcomb( values );
 
 end

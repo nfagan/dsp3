@@ -98,6 +98,41 @@ panels_are = { 'contexts', 'drugs', 'administration' };
 
 pl.lines( plt, lines_are, panels_are );
 
+%%  median split bars
+
+ts = [ -250, 0 ];
+bands = { [15, 25], [45, 60] };
+bandnames = { 'beta', 'gamma' };
+
+rois = [];
+roilabs = fcat();
+
+baselabs = addcat( rflabs', 'band' );
+
+for i = 1:numel(bandnames)
+  f_ind = freqs >= bands{i}(1) & freqs <= bands{i}(2);
+  t_ind = t >= ts(1) & t <= ts(2);
+  
+  meaned = squeeze( nanmean(nanmean(rf(:, f_ind, t_ind), 3), 2) );
+  
+  rois = [ rois; meaned ];
+  
+  append( roilabs, setcat(baselabs, 'band', bandnames{i}) );
+end
+
+pl = plotlabeled();
+pl.error_func = @plotlabeled.nansem;
+pl.one_legend = true;
+pl.y_lims = [ 50, 53 ];
+
+plt = labeled( rois, roilabs );
+
+x_is = { 'band' };
+groups_are = { 'median' };
+panels_are = { 'contexts' };
+
+pl.bar( plt, x_is, groups_are, panels_are );
+
 %%
 
 pltcont = SignalContainer( rf, SparseLabels.from_fcat(rflabs) );
@@ -198,7 +233,7 @@ pltlabs = corrlabs';
 pltx = X;
 plty = Y;
 
-pltbands = { 'beta' };
+pltbands = { 'beta', 'gamma' };
 % pltbands = combs( corrlabs, 'band' );
 
 [~, I] = only( pltlabs, pltbands );
