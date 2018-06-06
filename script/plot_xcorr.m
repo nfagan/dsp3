@@ -1,7 +1,7 @@
 conf = dsp3.config.load();
 
 % subdirs = { 'xcorr/noscale/targacq', 'xcorr/shuffled/targacq' };
-subdirs = { 'xcorr/across/targacq' };
+subdirs = { 'xcorr/across/targacq', 'xcorr/noscale/targacq', 'xcorr/shuffled/targacq' };
 
 xcorr_mats = dsp3.require_intermediate_mats( subdirs );
 
@@ -72,7 +72,7 @@ corrdat = corrdat(I, :);
 
 %%
 
-maxs = nan( size(corrdat, 1), 1 );
+maxs = nan( rows(corrdat), 1 );
 
 for i = 1:size(corrdat, 1)
   [~, ind] = max( abs(corrdat(i, :)) );
