@@ -11,7 +11,13 @@ function out = require_intermediate_mats( user_files, intermediate_path, contain
 %       - `out` (cell array of strings)
 
 if ( nargin == 1 )
-  out = shared_utils.io.find( dsp3.get_intermediate_dir(user_files), '.mat' );
+  if ( ischar(user_files) )
+    out = find_intermediate_dir( user_files );
+  else
+    shared_utils.assertions.assert__is_cellstr( user_files, 'intermediate paths' );
+    all_files = cellfun( @find_intermediate_dir, user_files, 'un', false );
+    out = horzcat( all_files{:} );
+  end
   return;
 end
 
@@ -30,4 +36,8 @@ if ( ~isempty(containing) )
   out = shared_utils.cell.containing( out, containing );
 end
 
+end
+
+function files = find_intermediate_dir(x)
+files = shared_utils.io.find( dsp3.get_intermediate_dir(x), '.mat' );
 end

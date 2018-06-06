@@ -1,4 +1,4 @@
-function [lags, crosscorr, max_crosscorr_lag]=amp_crosscorr(eeg1,eeg2,samp_freq,low_freq,high_freq)
+function [lags, crosscorr, max_crosscorr_lag]=amp_crosscorr(filtered1,filtered2,samp_freq,scaleopt)
 % amp_crosscorr filters two eeg signals between a specified frequency band,
 % calculates the crosscorrelation of the amplitude envelope of the filtered signals
 % and returns the crosscorrelation as an output.
@@ -17,23 +17,6 @@ function [lags, crosscorr, max_crosscorr_lag]=amp_crosscorr(eeg1,eeg2,samp_freq,
 % max_crosscorr_lag-lag at which the crosscorrelation peaks. Negative
 % max_crosscorr_lag indicates that eeg1 is leading eeg2.
 % check inputs
-order = round(samp_freq); %determines the order of the filter used
-
-if mod(order,2)~= 0
-  order = order-1;
-end
-
-Nyquist=floor(samp_freq/2);%determines nyquist frequency
-MyFilt=fir1(order,[low_freq, high_freq]/Nyquist); %creates filter
-
-%
-%
-%
-filtered1 = filter( MyFilt, 1, eeg1 );
-filtered2 = filter( MyFilt, 1, eeg2 );
-%
-%
-%
 
 filt_hilb1 = hilbert(filtered1); %calculates the Hilbert transform of eeg1
 amp1 = abs(filt_hilb1);%calculates the instantaneous amplitude of eeg1 filtered between low_freq and high_freq
@@ -41,7 +24,7 @@ amp1=amp1-mean(amp1); %removes mean of the signal because the DC component of a 
 filt_hilb2 = hilbert(filtered2);%calculates the Hilbert transform of eeg2
 amp2 = abs(filt_hilb2);%calculates the instantaneous amplitude of eeg2 filtered between low_freq and high_freq
 amp2=amp2-mean(amp2);
-[crosscorr,lags]=xcorr(amp1, amp2,round(samp_freq/10),'coeff'); %calculates crosscorrelations between amplitude vectors
+[crosscorr,lags]=xcorr(amp1, amp2,round(samp_freq/10),scaleopt); %calculates crosscorrelations between amplitude vectors
 lags=(lags./samp_freq)*1000; %converts lags to miliseconds
 g=find(crosscorr==max(crosscorr));%identifies index where the crosscorrelation peaks
 max_crosscorr_lag=lags(g);%identifies the lag at which the crosscorrelation peaks
