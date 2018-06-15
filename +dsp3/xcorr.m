@@ -12,6 +12,8 @@ defaults.xcorr_scale_opt = 'coeff';
 defaults.output_subdir = '';
 defaults.shuffle = false;
 defaults.per_trial = true;
+defaults.use_envelope = true;
+defaults.include_traces = true;
 defaults.across_trials_specificity = { 'outcomes', 'trialtypes', 'administration' };
 defaults.across_trials_type = 'nondrug';
 
@@ -79,6 +81,8 @@ parfor i = 1:numel(mats)
     
     band_name = bandnames{band_ind};
     
+    setcat( addcat(labs, 'bands'), 'bands', band_name );
+    
     lowf = bands{band_ind}(1);
     highf = bands{band_ind}(2);
     
@@ -103,7 +107,6 @@ parfor i = 1:numel(mats)
       end
       
       setcat( lab1, 'channels', channel_str );
-      setcat( addcat(lab1, 'bands'), 'bands', band_name );
       prune( lab1 );
 
       totlabs{j} = append( totlabs{j}, prune(lab1) );
@@ -134,6 +137,7 @@ specificity = params.across_trials_specificity;
 
 filt_func = params.filt_func;
 scale_opt = params.xcorr_scale_opt;
+use_envelope = params.use_envelope;
 
 [all_labs, cnd_ind] = keepeach( copy(labs), specificity );
 
@@ -144,6 +148,20 @@ tmp_outs = cell( numel(cnd_ind), 1 );
 
 chan1_ind = trueat( labs, find(labs, chan1) );
 chan2_ind = trueat( labs, find(labs, chan2) );
+
+lab1 = labs(find(data_ind & chan1_ind));
+lab2 = labs(find(data_ind & chan2_ind));
+
+reg1 = strjoin( combs(lab1, 'regions'), '_' );
+reg2 = strjoin( combs(lab2, 'regions'), '_' );
+
+region = sprintf( '%s_%s', reg1, reg2 );
+
+setcat( addcat(all_labs, 'regions'), 'regions', region );
+
+uuids = arrayfun( @(x) shared_utils.general.uuid, 1:length(all_labs), 'un', false );
+
+setcat( addcat(all_labs, 'uuid'), 'uuid', uuids );
 
 for i = 1:numel(cnd_ind)
   
@@ -166,6 +184,9 @@ for i = 1:numel(cnd_ind)
   reg1_data = cell( 1, numel(reg1_ind) );
   reg2_data = cell( size(reg1_data) );
   
+  raw1_data = cell( size(reg1_data) );
+  raw2_data = cell( size(reg1_data) );
+  
   for h = 1:numel(reg1_ind)        
     s1 = data(reg1_ind(h), :);
     s2 = data(reg2_ind(h), :);
@@ -184,30 +205,46 @@ for i = 1:numel(cnd_ind)
     
     reg1_data{h} = filt1;
     reg2_data{h} = filt2;
+    
+    raw1_data{h} = s1;
+    raw2_data{h} = s2;
   end
   
-  reg1_data = horzcat( reg1_data{:} );
-  reg2_data = horzcat( reg2_data{:} );
+  if ( params.include_traces )
   
-  [lags, cc, lag_at_max] = dsp3.amp_crosscorr( reg1_data, reg2_data, fs, scale_opt );
+    reg1_data = horzcat( reg1_data{:} );
+    reg2_data = horzcat( reg2_data{:} );
+    raw1_data = horzcat( raw1_data{:} );
+    raw2_data = horzcat( raw2_data{:} );
+
+    [lags, cc, lag_at_max, amp1, amp2] = ...
+      dsp3.amp_crosscorr( reg1_data, reg2_data, fs, scale_opt, use_envelope );
+
+    raw_labs = repmat( all_labs(i), 6 );
+    raw_dat = [ reg1_data; reg2_data; raw1_data; raw2_data; amp1; amp2 ];
+
+    addcat( raw_labs, {'datatype', 'uuid'} );
+    setcat( raw_labs, 'datatype', 'filtered', [1, 2] );
+    setcat( raw_labs, 'datatype', 'raw', [3, 4] );
+    setcat( raw_labs, 'datatype', 'amp-envelope', [5, 6] );
+    setcat( raw_labs, 'regions', reg1, [1, 3, 5] );
+    setcat( raw_labs, 'regions', reg2, [2, 4, 6] );
+    setcat( raw_labs, 'uuid', uuids{i} );
+    
+  else
+    raw_dat = [];
+    raw_labs = fcat();
+  end
 
   tmp = struct();
   tmp.lags = lags;
   tmp.value = cc;
   tmp.lag_at_max = lag_at_max;
+  tmp.raw_dat = raw_dat;
+  tmp.raw_labs = raw_labs;
 
   tmp_outs{i} = tmp;
 end
-
-lab1 = labs(find(data_ind & chan1_ind));
-lab2 = labs(find(data_ind & chan2_ind));
-
-reg1 = strjoin( combs(lab1, 'regions'), '_' );
-reg2 = strjoin( combs(lab2, 'regions'), '_' );
-
-region = sprintf( '%s_%s', reg1, reg2 );
-
-setcat( addcat(all_labs, 'regions'), 'regions', region );
 
 end
 

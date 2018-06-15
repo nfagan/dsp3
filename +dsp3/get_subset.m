@@ -14,6 +14,8 @@ if ( strcmp(drug_type, 'nondrug') )
   data('drugs') = '<drugs>';
 elseif ( strcmp(drug_type, 'drug') )
   data = data.rm( 'unspecified' );
+elseif ( strcmp(drug_type, 'full') )
+  %
 else
   assert( strcmp(drug_type, 'unspecified'), 'Unrecognized drug type "%s"', drug_type );
   data = data.only( 'unspecified' );

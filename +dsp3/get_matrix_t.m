@@ -26,9 +26,9 @@ end
 
 function [start, stop, ws, fs] = get_signal_cont_t(obj)
 
-start = obj.start;
-stop = obj.stop;
-fs = obj.fs;
 ws = obj.window_size;
+start = obj.start;
+stop = obj.stop + ws;
+fs = obj.fs;
 
 end
