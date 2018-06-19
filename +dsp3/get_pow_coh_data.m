@@ -19,8 +19,8 @@ end
 
 % mats = mats(39);
 
-% n_mats = numel( mats ) - 10;
-n_mats = 10;
+n_mats = numel( mats );
+% n_mats = 10;
 
 parfor i = 1:n_mats
   dsp3.progress( i, numel(mats) );
