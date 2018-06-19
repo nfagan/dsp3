@@ -1,8 +1,73 @@
-function data = get_subset( data, drug_type, keep_spec )
+function varargout = get_subset( fullset, drug_type, keep_spec )
 
-if ( nargin < 3 )
-  keep_spec = 'days';
+if ( isa(fullset, 'Container') )
+  if ( nargin < 3 ), keep_spec = 'days'; end
+  
+  subset = get_cont_subset( fullset, drug_type, keep_spec );
+  assert( nargout == 1, 'Indices not supported with Container input.' );
+  
+  varargout{1} = subset;
+else
+  if ( nargin < 3 ), keep_spec = {}; end
+  
+  assert( isa(fullset, 'fcat'), 'Labels must be "fcat" or "Container"; were "%s".' ...
+    , class(fullset) );
+  
+  [labs, I] = get_fcat_subset( fullset, drug_type, keep_spec );
+  
+  varargout{1} = labs;
+  
+  if ( nargout > 1 ), varargout{2} = I; end
 end
+
+end
+
+function [labs, I] = get_fcat_subset(labs, kind, addtl)
+
+bad_days_ind = trueat( labs, findor(labs, dsp2.process.format.get_bad_days()) );
+good_days_ind = find( ~bad_days_ind );
+
+switch ( kind )
+  case 'nondrug'
+    %   keep first 350 trials for non-injection "unspecified" days.
+    if ( isempty(addtl) )
+      each_inds = { 1:length(labs) }; 
+    else
+      each_inds = findall( labs, addtl );
+    end
+    
+    unspc_ind = trueat( labs, [] );
+    
+    for i = 1:numel(each_inds)
+      mask = find( labs, 'unspecified', each_inds{i} );
+      first_ind = dsp3.find_first_trials( labs, 350, mask );
+      unspc_ind = unspc_ind | trueat( labs, first_ind );
+    end
+    
+    %   keep pre only for saline and oxytocin days
+    sal_pre_ind = trueat( labs, find(labs, {'saline', 'pre'}) );
+    oxy_pre_ind = trueat( labs, find(labs, {'oxytocin', 'pre'}) );  
+    
+    I = sal_pre_ind | oxy_pre_ind | unspc_ind;
+    
+    I = find( I & ~bad_days_ind );
+    
+    keep( labs, I );
+    
+    setcat( labs, 'administration', 'pre' );
+    setcat( labs, 'drugs', makecollapsed(labs, 'drugs') );
+  case 'drug'
+    I = findor( labs, {'saline', 'oxytocin'}, good_days_ind );
+    keep( labs, I );
+  case 'full'
+    keep( labs, good_days_ind );
+  otherwise
+    error( 'Unrecognized subset "%s".', kind );
+end
+
+end
+
+function data = get_cont_subset(data, drug_type, keep_spec)
 
 if ( strcmp(drug_type, 'nondrug') )
   [unspc, tmp_behav] = data.pop( 'unspecified' );

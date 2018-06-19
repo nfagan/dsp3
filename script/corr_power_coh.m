@@ -1,50 +1,104 @@
-meas1 = 'z_raw_power';
-meas2 = 'z_coherence';
-manip = 'pro_v_anti';
+conf = dsp3.config.load();
+plot_p = fullfile( conf.PATHS.data_root, 'plots', 'corr_coh_power', datestr(now, 'mmddyy') );
+
+%%
+
+% meas1 = 'z_raw_power';
+% meas2 = 'z_coherence';
+% manip = 'pro_v_anti';
+% drug_type = 'nondrug';
+% epoch = 'targacq';
+
+meas1 = 'at_raw_power';
+meas2 = 'at_coherence';
+manip = '';
 drug_type = 'nondrug';
 epoch = 'targacq';
 
-mats = dsp3.require_intermediate_mats( fullfile(meas1, drug_type, manip, epoch) );
+outs = dsp3.get_pow_coh_data( meas1, meas2, manip, drug_type, epoch );
 
-coh_p = dsp3.get_intermediate_dir( fullfile(meas2, drug_type, manip, epoch) );
+totlabels = outs.labels';
+totdata = outs.data;
 
-totdata = cell( 1, numel(mats) );
-totlabels = fcat.empties( size(totdata) );
-freqs = cell( size(totdata) );
-t = cell( size(freqs) );
+chc = trueat( totlabels, find(totlabels, 'choice') );
+errs = trueat( totlabels, find(totlabels, 'errors') );
 
-parfor i = 1:numel(mats)
-  dsp3.progress( i, numel(mats) );
+I = find( chc & ~errs );
+
+totdata = rowref( totdata, I );
+keep( totlabels, I );
+
+assert( rows(totdata) == rows(totlabels) );
+
+%%
+
+ts = [ -250, 0 ];
+
+t_ind = t >= ts(1) & t <= ts(2);
+
+tmeaned = nanmean( dimref(totdata, t_ind, 3), 3 );
+
+[plt_labs, I] = only( totlabels', 'power' );
+plt_data = rowref( tmeaned, I );
+
+I = findall( plt_labs ...
+  , {'regions', 'sites', 'channels', 'measure', 'subdir', 'days', 'administration', 'trialtypes'} );
+
+outlabs = fcat();
+outdata = [];
+
+for i = 1:numel(I)
+  self = find( plt_labs, 'self', I{i} );
+  both = find( plt_labs, 'both', I{i} );
+  other = find( plt_labs, 'other', I{i} );
+  none = find( plt_labs, 'none', I{i} );
   
-  power_file = shared_utils.io.fload( mats{i} );
-  coh_file = shared_utils.io.fload( fullfile(coh_p, power_file.unified_filename) );
+  sb = rowref( plt_data, self ) - rowref( plt_data, both );
+  on = rowref( plt_data, other ) - rowref( plt_data, none );
   
-  plabels = fcat.from( power_file.zlabels, power_file.zcats );
-  clabels = fcat.from( coh_file.zlabels, coh_file.zcats );
+  outdata = [ outdata; sb; on ];
   
-  setcat( addcat(plabels, 'measure'), 'measure', 'power' );
-  setcat( addcat(clabels, 'measure'), 'measure', 'coherence' );
-  
-  totlabels{i} = extend( totlabels{i}, plabels, clabels );
-  
-  f1 = power_file.frequencies;
-  f2 = coh_file.frequencies;
-  
-  nf = min( numel(f1), numel(f2) );
-  f1 = f1(1:nf);
-  f2 = f2(1:nf);
-  
-  totdata{i} = [ dimref(power_file.zdata, 1:nf, 2); dimref(coh_file.zdata, 1:nf, 2) ];
-  
-  t{i} = power_file.time;
-  freqs{i} = f1;
+  append( outlabs, plt_labs, self );
+  append( outlabs, plt_labs, other );
 end
 
-totdata = vertcat( totdata{:} );
-totlabels = vertcat( totlabels{:} );
+replace( outlabs, 'self', 'self-both' );
+replace( outlabs, 'other', 'other-none' );
 
-t = t{1};
-freqs = freqs{1};
+pl = plotlabeled();
+pl.error_func = @plotlabeled.nansem;
+pl.x = freqs;
+pl.main_line_width = 4;
+
+axs = pl.lines( labeled(outdata, outlabs), {'outcomes'}, {'regions', 'measure'} );
+
+arrayfun( @(x) xlim(x, [0, 100]), axs );
+
+%%
+
+ts = [ -250, 0 ];
+
+t_ind = t >= ts(1) & t <= ts(2);
+
+tmeaned = nanmean( dimref(totdata, t_ind, 3), 3 );
+
+[plt_labs, I] = only( totlabels', 'power' );
+plt_data = rowref( tmeaned, I );
+
+% plt_labs = totlabels';
+% plt_data = tmeaned;
+
+pl = plotlabeled();
+pl.error_func = @plotlabeled.nansem;
+pl.x = freqs;
+pl.main_line_width = 4;
+
+axs = pl.lines( labeled(plt_data, plt_labs), {'outcomes'}, {'regions', 'measure'} );
+
+arrayfun( @(x) xlim(x, [0, 100]), axs );
+
+arrayfun( @(x) set(x, 'yscale', 'log'), axs );
+
 
 %%
 
@@ -107,7 +161,13 @@ end
 
 %%
 
+prefix = 'corr_log';
+
+log_scale = true;
+do_save = false;
+
 pl = plotlabeled();
+pl.fig = figure(2);
 pl.plot_empties = false;
 pl.marker_size = 8;
 pl.color_func = @hsv;
@@ -115,33 +175,41 @@ pl.panel_order = { 'theta', 'beta', 'gamma' };
 pl.shape = [3, 2];
 pl.add_legend = false;
 
-addcat( all_labs, 'dummy' );
+% [pltlabs, I] = only( all_labs', {'none'} );
+% pltx = rowref( coh_data, I );
+% plty = rowref( pow_data, I );
 
-[axs, ids] = pl.scatter( coh_data, pow_data, all_labs, 'dummy', {'regions', 'bands'} );
+pltlabs = all_labs';
+pltx = coh_data;
+plty = pow_data;
+
+[axs, ids] = pl.scatter( pltx, plty, pltlabs, 'subdir', {'regions', 'bands', 'outcomes'} );
 
 shared_utils.plot.match_xlims( axs );
 
-arrayfun( @(x) xlabel(x, 'z-coherence'), axs(end) );
-arrayfun( @(x) ylabel(x, 'z-raw power'), axs(end) );
+arrayfun( @(x) xlabel(x, 'coherence'), axs(end) );
+arrayfun( @(x) ylabel(x, 'raw power'), axs(end) );
 
 for i = 1:numel(ids)
-  
   ax = ids(i).axes;
   ind = ids(i).index;
   
-  X = coh_data(ind);
-  Y = pow_data(ind);
+  X = pltx(ind);
+  Y = plty(ind);
   
   [r, p] = corr( X, Y, 'rows', 'complete' );
   
   xlims = get( ax, 'xlim' );
   ylims = get( ax, 'ylim' );
   
+  xticks = get( ax, 'xtick' );
+  yticks = get( ax, 'ytick' );
+  
   ps = polyfit( X, Y, 1 );
-  y = polyval( ps, xlims );
+  y = polyval( ps, xticks );
   
   set( ax, 'nextplot', 'add' );
-  plot( ax, xlims, y );
+  plot( ax, xticks, y );
   
   coord_func = @(x) ((x(2)-x(1)) * 0.75) + x(1);
   
@@ -150,7 +218,24 @@ for i = 1:numel(ids)
   
   txt = sprintf( 'R = %0.2f, p = %0.3f', r, p);
   
-  if ( p < 0.05 ), txt = sprintf( '%s *', txt ); end
+  thresh = 0.05 / numel( ids );
+  
+  if ( p < thresh ), txt = sprintf( '%s *', txt ); end
   
   text( ax, xc, yc, txt );
+end
+
+% set( gcf, 'units', 'normalized' );
+% set( gcf, 'position', [0, 0, 1, 1] );
+
+if ( log_scale )
+  arrayfun( @(x) set(x, 'yscale', 'log'), axs );
+end
+
+if ( do_save )
+  fname = fcat.trim( joincat(prune(all_labs), {'subdir', 'regions', 'bands'}) );
+  fname = sprintf( '%s_%s', prefix, fname );
+  
+  shared_utils.io.require_dir( plot_p );
+  shared_utils.plot.save_fig( gcf, fullfile(plot_p, fname), {'epsc', 'png', 'fig'}, true );  
 end

@@ -3,16 +3,18 @@ function save_at_measure(varargin)
 defaults = dsp3.get_common_make_defaults();
 defaults.meas_type = '';
 defaults.epoch = '';
+defaults.drug_type = '';
 defaults.mean_spec = dsp3.get_default_mean_spec();
 
 params = dsp3.parsestruct( defaults, varargin );
 
 meas_type = field_or_err( params, 'meas_type' );
 epoch = field_or_err( params, 'epoch' );
+drug_type = field_or_err( params, 'drug_type' );
 mean_spec = params.mean_spec;
 
 input_p = dsp3.get_intermediate_dir( fullfile(meas_type, epoch) );
-output_p = dsp3.get_intermediate_dir( fullfile(sprintf('at_%s', meas_type), epoch) );
+output_p = dsp3.get_intermediate_dir( fullfile(sprintf('at_%s', meas_type), drug_type, epoch) );
 
 mats = dsp3.require_intermediate_mats( params.files, input_p, params.files_containing );
 
@@ -29,6 +31,8 @@ parfor i = 1:numel(mats)
   end
   
   meas = meas_file.measure;
+  
+  meas = dsp3.get_subset( meas, drug_type );
   
   data = meas.data;
   labs = fcat.from( meas.labels );
