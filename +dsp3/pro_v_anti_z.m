@@ -9,6 +9,8 @@ function outs = pro_v_anti_z(data, labs, mean_spec, N)
 %       - `mean_spec` (cell array of strings, char)
 %       - `N` (double)
 
+mean_spec = shared_utils.cell.ensure_cell( mean_spec );
+
 sans_outcomes = setdiff( mean_spec, 'outcomes' );
 
 data_sz = size( data );
