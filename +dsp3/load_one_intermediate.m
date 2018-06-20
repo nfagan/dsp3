@@ -5,7 +5,7 @@ if ( nargin < 2 ), name = ''; end
 
 dsp3.util.assertions.assert__is_config( conf );
 
-intermediate_dir = dsp3.get_intermediate_dir( kind );
+intermediate_dir = dsp3.get_intermediate_dir( kind, conf );
 
 mats = shared_utils.io.find( intermediate_dir, '.mat' );
 
