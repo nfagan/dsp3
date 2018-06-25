@@ -39,7 +39,7 @@ errordat = behavdat(I, :);
 
 % errlab = 'errors';
 errlab = 'error__choice';
-err_data = cellfun( @(x) zeros(numel(I), 1), cell(2, 1), 'un', false );
+err_data = cellfun( @(x) zeros(numel(I), 1), cell(2, 1), 'un', 0 );
 
 for i = 1:numel(I)
   sb_ind = find( errorlabs, {'selfboth', 'no_errors', 'error__choice'}, I{i} );
@@ -68,8 +68,7 @@ prefix = 'n_correct';
 
 spec = { 'monkeys', 'administration', 'drugs' };
 
-addcat( behavlabs, 'correct' );
-setcat( behavlabs, 'correct', 'correct_true' );
+setcat( addcat(behavlabs, 'correct'), 'correct', 'correct_true' );
 setcat( behavlabs, 'correct', 'correct_false', find(behavlabs, 'errors') );
 
 [corrlabs, I] = keepeach( behavlabs', {'days', 'administration'} );
@@ -106,7 +105,38 @@ if ( do_save )
   writetable( T, fullfile(full_analysisp, fname), 'WriteRowNames', true );
 end
 
-  
+%%  n sessions
+
+do_save = false;
+per_monk = true;
+
+prefix = 'n_sessions__';
+
+spec = { 'drugs', 'monkeys' };
+
+daylabs = keepeach( behavlabs', union(spec, {'days'}) );
+
+if ( ~per_monk )
+  collapsecat( daylabs, 'monkeys' );
+end
+
+[countlabs, I] = keepeach( daylabs', spec );
+cts = cellfun( @numel, I );
+
+[t, rc] = tabular( countlabs, spec );
+
+dat = cellfun( @(x) cts(x), t );
+
+T = fcat.table( dat, rc{:} )
+
+if ( do_save )
+  fname = fcat.trim( joincat(prune(countlabs), spec) );
+  fname = sprintf( '%s_%s_%s.csv', prefix, drug_type, fname );
+  full_analysisp = fullfile( analysis_p, 'n_sessions' );
+  shared_utils.io.require_dir( full_analysisp );
+  writetable( T, fullfile(full_analysisp, fname), 'WriteRowNames', true );
+end
+
 %%
 
 do_save = true;
