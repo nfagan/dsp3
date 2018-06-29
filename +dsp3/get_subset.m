@@ -60,7 +60,8 @@ switch ( kind )
     I = findor( labs, {'saline', 'oxytocin'}, good_days_ind );
     keep( labs, I );
   case 'full'
-    keep( labs, good_days_ind );
+    I = good_days_ind;
+    keep( labs, I );
   otherwise
     error( 'Unrecognized subset "%s".', kind );
 end
