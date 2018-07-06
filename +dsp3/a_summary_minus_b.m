@@ -1,6 +1,37 @@
 function [dat, labs] = a_summary_minus_b(data, labels, spec, a, b, func, mask)
 
-if ( nargin < 6 )
+%   A_SUMMARY_MINUS_B -- Subtract average of `B` from average of `A`, for
+%     each subset.
+%
+%     [D, L] = a_summary_minus_b( data, labs, spec, a, b ) subtracts an 
+%     average of rows of `data` identified by label `b` from an average of 
+%     rows identified by label `a`, separately for each label combination 
+%     in categories identified by `spec`. `labs` is an fcat object with the
+%     same number of rows as `data`. Output `D` is the result of the
+%     subtraction; output `L` is an fcat object identifying rows of `D`.
+%
+%     [...] = a_summary_minus_b( ..., func ) uses `func` to collapse rows
+%     of `data`, instead of `nanmean()`.
+%
+%     [...] = a_summary_minus_b( ..., mask ) draws combinations from the
+%     subset of rows identified by the uint64 index vector `mask`.
+%
+%     IN:
+%       - `data` (/T/)
+%       - `labels` (fcat)
+%       - `spec` (cell array of strings, char)
+%       - `a` (cell array of strings, char)
+%       - `b` (cell array of strings, char)
+%       - `func` (function_handle) |OPTIONAL|
+%       - `mask` (uint64) |OPTIONAL|
+%     OUT:
+%       - `dat` (/T/)
+%       - `labs` (fcat)
+
+assert( rows(data) == rows(labels), 'Number of rows of data and labels must match.' );
+assert( isa(labels, 'fcat'), 'Labels must be an fcat object; was "%s".', class(labels) );
+
+if ( nargin < 6 || isempty(func) )
   func = @(x) nanmean( x, 1 );
 end
 
@@ -10,7 +41,7 @@ else
   [labs, I] = keepeach( labels', spec, mask );
 end
 
-dat = zeros( [numel(I), notsize(data, 1)] );
+dat = zeros( joinsize(I, data) );
 clns = colons( ndims(data)-1 );
 
 for i = 1:numel(I)
