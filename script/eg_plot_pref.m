@@ -25,7 +25,6 @@ end
 
 %%  pref index
 
-
 [preflabs, I] = keepeach( behavlabs', {'days', 'administration', 'trialtypes', 'dataset'} );
 
 pfunc = @(x, y) (x-y) / (x+y);
@@ -57,7 +56,7 @@ end
 
 %%
 
-pl = plotlabeled( 'error_func', @plotlabeled.nansem );
+pl = plotlabeled( 'error_func', @plotlabeled.nansem, 'one_legend', true );
 
 xcats = 'outcomes';
 gcats = 'administration';

@@ -4,15 +4,15 @@ drug_type = 'nondrug';
 
 conf = dsp3.config.load();
 
-% date_dir = '061118';  % per day
-date_dir = '061218';  % across days
+date_dir = '061118';  % per day
+% date_dir = '061218';  % across days
 lda_dir = fullfile( conf.PATHS.dsp2_analyses, 'lda', date_dir );
 
 lda = get_messy_lda_data( lda_dir );
 
 if ( strcmp(drug_type, 'nondrug') ), lda('drugs') = '<drugs>'; end
 
-sub_null = true;
+sub_null = false;
 mean_across_perms = false;
 
 plotp = fullfile( conf.PATHS.data_root, 'plots', 'lda', datestr(now, 'mmddyy') );
@@ -98,13 +98,14 @@ end
 
 %%
 
-do_save = true;
+do_save = false;
 
 plot_prefix = 'panels_bands_bar_minus_null';
 
 pl = plotlabeled();
 pl.error_func = @plotlabeled.nansem;
 pl.panel_order = { 'theta', 'beta', 'gamma' };
+pl.one_legend = true;
 
 plt = labeled( pltdat, pltlabs );
 
