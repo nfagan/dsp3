@@ -28,7 +28,7 @@ function [dat, labs] = a_summary_minus_b(data, labels, spec, a, b, func, mask)
 %       - `dat` (/T/)
 %       - `labs` (fcat)
 
-assert( rows(data) == rows(labels), 'Number of rows of data and labels must match.' );
+assert( rowsmatch(data, labels), 'Number of rows of data and labels must match.' );
 assert( isa(labels, 'fcat'), 'Labels must be an fcat object; was "%s".', class(labels) );
 
 if ( nargin < 6 || isempty(func) )
