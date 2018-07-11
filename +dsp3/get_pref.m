@@ -1,7 +1,10 @@
-function [prefdat, preflabs] = get_pref(preflabs)
+function [prefdat, preflabs] = get_pref(preflabs, spec)
+
+if ( nargin < 2 )
+  spec = { 'days', 'trialtypes', 'administration' };
+end
 
 prefdat = rowones( length(preflabs) );
-spec = { 'days', 'trialtypes', 'administration' };
 opfunc = @(a, b) (a-b) ./ (a+b);
 sfunc = @sum;
 

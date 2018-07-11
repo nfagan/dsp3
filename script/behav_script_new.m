@@ -52,9 +52,7 @@ for i = 1:numel(I)
   err_data{2}(i) = 1 - (numel(on_errs) / numel(on_ind));
 end
 
-repmat( errlabs, 2 );
-setcat( errlabs, 'contexts', 'selfboth', 1:numel(I) );
-setcat( errlabs, 'contexts', 'othernone', numel(I)+1:numel(I)*2 );
+repset( errlabs, 'contexts', {'selfboth', 'othernone'} );
 
 pcorr = vertcat( err_data{:} );
 pcorr = pcorr * 100;
@@ -85,13 +83,7 @@ end
 meancorr = rowmean( ncorr, I );
 stdcorr = rowop( ncorr, I, @(x) std(x, [], 1) );
 
-use_labs = repmat( meanlabs', 2 );
-
-L = length( use_labs );
-
-addcat( use_labs, 'measure' );
-setcat( use_labs, 'measure', 'mean', 1:L/2 );
-setcat( use_labs, 'measure', 'std', (L/2)+1:L );
+use_labs = repset( addcat(meanlabs', 'measure'), 'measure', {'mean', 'std'} );
 
 [T, rc] = tabular( use_labs, spec, 'measure' );
 dat = [ meancorr; stdcorr ];
@@ -137,7 +129,7 @@ if ( do_save )
   writetable( T, fullfile(full_analysisp, fname), 'WriteRowNames', true );
 end
 
-%%
+%%  plot p correct
 
 do_save = false;
 

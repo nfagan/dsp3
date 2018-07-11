@@ -21,6 +21,7 @@ behav = dsp3.get_subset( behav, drug_type );
 behavdat = behav.data;
 behavlabs = fcat.from( behav.labels );
 
+setcat( addcat(behavlabs, 'drugtypes'), 'drugtypes', drug_type );
 setcat( addcat(behavlabs, 'errortypes'), 'errortypes', 'no_errors' );
 
 errs_ind = trueat( behavlabs, find(behavlabs, 'errors') );
@@ -52,9 +53,7 @@ for i = 1:numel(I)
   err_data{2}(i) = 1 - (numel(on_errs) / numel(on_ind));
 end
 
-repmat( errlabs, 2 );
-setcat( errlabs, 'contexts', 'selfboth', 1:numel(I) );
-setcat( errlabs, 'contexts', 'othernone', numel(I)+1:numel(I)*2 );
+repset( errlabs, 'contexts', {'selfboth', 'othernone'} );
 
 pcorr = vertcat( err_data{:} );
 pcorr = pcorr * 100;
@@ -85,13 +84,7 @@ end
 meancorr = rowmean( ncorr, I );
 stdcorr = rowop( ncorr, I, @(x) std(x, [], 1) );
 
-use_labs = repmat( meanlabs', 2 );
-
-L = length( use_labs );
-
-addcat( use_labs, 'measure' );
-setcat( use_labs, 'measure', 'mean', 1:L/2 );
-setcat( use_labs, 'measure', 'std', (L/2)+1:L );
+use_labs = repset( addcat(meanlabs', 'measure'), 'measure', {'mean', 'std'} );
 
 [T, rc] = tabular( use_labs, spec, 'measure' );
 dat = [ meancorr; stdcorr ];
@@ -137,7 +130,7 @@ if ( do_save )
   writetable( T, fullfile(full_analysisp, fname), 'WriteRowNames', true );
 end
 
-%%
+%%  plot p correct
 
 do_save = false;
 
@@ -164,32 +157,73 @@ end
 
 %%  table -- percent correct
 
+do_save = true;
+prefix = 'pcorrect_descriptives__';
+
 tdat = pcorr;
 tlabs = errlabs';
 
-per_context = false;
+per_context = true;
 
 if ( ~per_context )
   collapsecat( tlabs, 'contexts' );
 end
 
-[t, rc] = tabular( tlabs, {'contexts', 'trialtypes', 'drugs', 'administration'} );
+spec = {'contexts', 'trialtypes', 'drugs', 'administration', 'magnitudes', 'drugtypes'};
+
+[t, rc] = tabular( tlabs, spec );
 
 means = cellfun( @(x) mean(tdat(x)), t );
 errs = cellfun( @(x) plotlabeled.sem(tdat(x)), t );
 
-rc{2} = repset( addcat(rc{2}, 'measure'), 'measure', {'mean', 'sem'} );
+repset( addcat(rc{1}, 'measure'), 'measure', {'mean', 'sem'} );
 
-tbl = fcat.table( [means, errs], rc{:} )
+tbl = fcat.table( [means; errs], rc{:} )
 
+if ( do_save )
+  shared_utils.io.require_dir( analysis_p );
+  fname = dsp3.prefix( prefix, dsp3.fname(tlabs, spec) );
+  dsp3.writetable( tbl, fullfile(analysis_p, fname) );  
+end
 
-% means = rowmean( pcorr, I );
+%%  stats -- percent correct, pro v. anti
 
+do_save = true;
+prefix = 'pcorrect_stats__';
 
+use_labs = setcat( addcat(errlabs', 'measure'), 'measure', 'p value' );
+use_dat = pcorr;
 
+mask = find( use_labs, 'choice' );
 
+[tlabs, I] = keepeach( use_labs', setdiff(spec, {'contexts', 'days'}), mask );
 
+pairs = {  {'selfboth', 'othernone'} };
 
+repset( tlabs, 'outcomes', cellfun(@(x) strjoin(x, ' vs. '), pairs, 'un', 0) );
+ps = rowzeros( rows(tlabs) );
 
+for j = 1:numel(pairs)
+  for i = 1:numel(I)
+    ind_a = find( use_labs, pairs{j}{1}, I{i} );
+    ind_b = find( use_labs, pairs{j}{2}, I{i} );
+
+    [h, p, ~, stats] = ttest2( use_dat(ind_a), use_dat(ind_b) );
+    
+    stp = i + (j-1)*numel(I);
+    
+    ps(stp) = p;
+  end
+end
+
+[t, rc] = tabular( tlabs, {'measure', 'outcomes'}, {'trialtypes', 'magnitudes'} );
+
+ps_tbl = fcat.table( cellfun(@(x) ps(x), t), rc{:} );
+
+if ( do_save )
+  shared_utils.io.require_dir( analysis_p );
+  fname = dsp3.prefix( prefix, dsp3.fname(tlabs, union(spec, {'measure'})) );
+  dsp3.writetable( ps_tbl, fullfile(analysis_p, fname) );  
+end
 
 
