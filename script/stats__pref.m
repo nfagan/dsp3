@@ -7,7 +7,8 @@ analysis_p = dsp3.analysisp( {'behavior', dsp3.datedir} );
 %%
 
 drug_type = 'nondrug';
-per_mag = false;
+per_mag = true;
+do_save = true;
 
 spec = { 'outcomes', 'trialtypes', 'days', 'drugs', 'administration' };
 
@@ -22,7 +23,6 @@ replace( preflabs, 'otherMinusNone', 'othernone' );
 
 %%  sign rank against 0 preference
 
-do_save = true;
 prefix = 'preference__stats';
 
 uselabs = preflabs';
@@ -54,7 +54,78 @@ repset( addcat(rc{1}, 'measure'), 'measure', names );
 ps_tbl = fcat.table( vertcat(t_vals{:}), rc{:} );
 
 if ( do_save )
-  shared_utils.io.require_dir( analysis_p );
-  fname = dsp3.prefix( prefix, dsp3.fname(tlabs, spec) );
-  dsp3.writetable( ps_tbl, fullfile(analysis_p, fname) );  
+  dsp3.savetbl( ps_tbl, analysis_p, tlabs, spec, prefix );
 end
+
+%%  anova with magnitude
+
+uselabs = preflabs';
+usedat = prefdat;
+
+alpha = 0.05;
+factor = 'magnitudes';
+anovas_each = setdiff( spec, union(cellstr(factor), {'days'}) );
+
+mask = setdiff( find(uselabs, 'choice'), find(uselabs, 'errors') );
+
+addcat( uselabs, 'comparison' );
+[alabs, I] = keepeach( uselabs', anovas_each, mask );
+clabs = fcat();
+tbls = cell( size(I) );
+
+for i = 1:numel(I)
+  
+  grp = removecats( categorical(uselabs, factor, I{i}) );
+  [p, tbl, stats] = anova1( usedat(I{i}), grp, 'off' );
+  [c, ~, ~, g] = multcompare( stats, 'display', 'off' );
+  
+  cg = arrayfun( @(x) g(x), c(:, 1:2) );
+  cc = [ cg, arrayfun(@(x) x, c(:, 3:end), 'un', 0) ];
+  
+  is_sig = c(:, end) < alpha;
+  
+  sig_c = cc(is_sig, :);
+  
+  for j = 1:size(sig_c, 1)
+    setcat( uselabs, 'comparison', sprintf('%s vs %s', sig_c{j, 1:2}) );
+    append1( clabs, uselabs, I{i} );
+  end
+  
+  tbls{i} = cell2table( tbl(2:end, :), 'VariableNames', fcat.trim(tbl(1, 1:end)) );
+end
+
+if ( do_save )
+  for i = 1:numel(tbls)
+    dsp3.savetbl( tbls{i}, analysis_p, alabs(i), anovas_each, 'pref__magnitude__anovas' );
+  end
+end
+
+%
+% means
+%
+
+[meanlabs, I] = keepeach( uselabs', setdiff(spec, 'days'), mask );
+means = rownanmean( usedat, I );
+devs = rowop( usedat, I, @plotlabeled.nansem );
+
+[t, rc] = tabular( meanlabs, setdiff(spec, 'days') );
+
+repset( addcat(rc{2}, 'measure'), 'measure', {'mean', 'sem'} );
+
+t_means = cellrefs( means, t );
+t_devs = cellrefs( devs, t );
+
+tbl = fcat.table( [t_means, t_devs], rc{:} );
+
+if ( do_save )
+  dsp3.savetbl( tbl, analysis_p, meanlabs, anovas_each, 'pref__magnitude__descriptives' );
+end
+
+
+
+
+
+
+
+
+

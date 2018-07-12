@@ -7,6 +7,7 @@ analysis_p = fullfile( dr, 'analyses', 'behavior', datedir );
 %%
 
 drug_type = 'nondrug';
+per_magnitude = true;
 
 combined = dsp3.get_consolidated_data();
 
@@ -36,7 +37,11 @@ setcat( behavlabs, 'errortypes', 'error__choice', find(choice_errs) );
 [errorlabs, I] = prune( only(behavlabs', 'choice') );
 errordat = behavdat(I, :);
 
-[errlabs, I] = keepeach( errorlabs', {'days', 'trialtypes', 'administration'} );
+pcorr_spec = {'days', 'trialtypes', 'administration'};
+
+if ( per_magnitude ), pcorr_spec{end+1} = 'magnitudes'; end
+
+[errlabs, I] = keepeach( errorlabs', pcorr_spec );
 
 % errlab = 'errors';
 errlab = 'error__choice';
@@ -132,7 +137,7 @@ end
 
 %%  plot p correct
 
-do_save = false;
+do_save = true;
 
 prefix = 'pcorrect_good_trials';
 % prefix = 'pcorrect';
@@ -140,10 +145,11 @@ prefix = 'pcorrect_good_trials';
 pl = plotlabeled();
 pl.error_func = @plotlabeled.sem;
 pl.y_lims = [0, 101];
+pl.group_order = { 'low', 'medium', 'high' };
 
 plt = labeled( pcorr, errlabs );
 
-axs = pl.bar( plt, 'contexts', 'trialtypes', 'trialtypes' );
+axs = pl.bar( plt, 'contexts', 'magnitudes', 'trialtypes' );
 
 arrayfun( @(x) ylabel(x, 'Percent Correct'), axs );
 
@@ -163,7 +169,7 @@ prefix = 'pcorrect_descriptives__';
 tdat = pcorr;
 tlabs = errlabs';
 
-per_context = true;
+per_context = false;
 
 if ( ~per_context )
   collapsecat( tlabs, 'contexts' );
@@ -224,6 +230,83 @@ if ( do_save )
   shared_utils.io.require_dir( analysis_p );
   fname = dsp3.prefix( prefix, dsp3.fname(tlabs, union(spec, {'measure'})) );
   dsp3.writetable( ps_tbl, fullfile(analysis_p, fname) );  
+end
+
+%%  anova with magnitude
+
+spec = union( pcorr_spec, 'contexts' );
+
+uselabs = addcat( errlabs', 'comparison' );
+usedat = pcorr;
+
+alpha = 0.05;
+
+mask = setdiff( find(uselabs, 'choice'), find(uselabs, 'errors') );
+
+factors = { 'contexts', 'magnitudes' };
+
+anovas_each = setdiff( spec, union(factors, {'days'}) );
+[alabs, I] = keepeach( uselabs', anovas_each, mask );
+
+clabs = fcat();
+sig_comparisons = {};
+tbls = cell( size(I) );
+
+for i = 1:numel(I)
+  
+  grps = cellfun( @(x) removecats(categorical(uselabs, x, I{i})), factors, 'un', 0 );
+  
+  [p, tbl, stats] = anovan( usedat(I{i}), grps, 'display', 'off', 'varnames', factors, 'model', 'full' );
+  
+  sig_dims = find( p < alpha );
+  sig_dims(sig_dims > numel(factors)) = [];
+  
+  [c, ~, ~, g] = multcompare( stats, 'display', 'off', 'dimension', sig_dims );  
+  
+  cg = arrayfun( @(x) g(x), c(:, 1:2) );
+  cc = [ cg, arrayfun(@(x) x, c(:, 3:end), 'un', 0) ];
+  
+  is_sig = c(:, end) < alpha;
+  
+  sig_c = cc(is_sig, :);
+  
+  for j = 1:size(sig_c, 1)
+    setcat( uselabs, 'comparison', sprintf('%s vs %s', sig_c{j, 1:2}) );
+    append1( clabs, uselabs, I{i} );
+  end
+  
+  sig_comparisons = [ sig_comparisons; sig_c ];
+  tbls{i} = cell2table( tbl(2:end, :), 'VariableNames', matlab.lang.makeValidName( tbl(1, :)) );
+end
+
+%   mean table
+[meanlabs, I] = keepeach( uselabs', setdiff(spec, 'days'), mask );
+means = rownanmean( usedat, I );
+devs = rowop( usedat, I, @plotlabeled.nansem );
+
+[t, rc] = tabular( meanlabs, setdiff(spec, 'days') );
+t_means = cellrefs( means, t );
+t_devs = cellrefs( devs, t );
+
+repset( addcat(rc{2}, 'measure'), 'measure', {'mean', 'sem'} );
+
+m_tbl = fcat.table( [t_means, t_devs], rc{:} );
+
+%   comparisons table
+[t, rc] = tabular( clabs, union(anovas_each, 'comparison') );
+t_mean_diffs = cellrefs( sig_comparisons(:, 4), t );
+t_ps = cellrefs( sig_comparisons(:, 6), t );
+repset( addcat(rc{2}, 'measure'), 'measure', {'mean difference', 'p value'} );
+
+a_tbl = fcat.table( [t_mean_diffs, t_ps], rc{:} );
+
+if ( do_save )
+  dsp3.savetbl( a_tbl, analysis_p, clabs, anovas_each, 'p_corr__magnitudes__comparisons' );
+  dsp3.savetbl( m_tbl, analysis_p, meanlabs, anovas_each, 'p_corr__magnitudes__descriptives' );
+  
+  for i = 1:numel(tbls)
+    dsp3.savetbl( tbls{i}, analysis_p, alabs(i), anovas_each, 'p_corr__magnitudes__anova' );
+  end
 end
 
 
