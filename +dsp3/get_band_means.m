@@ -3,6 +3,16 @@ function [banddat, bandlabs, I] = get_band_means(data, labels, freqs, bands, ban
 fdim = 2;
 tdim = 3;
 
+narginchk( 4, 5 );
+
+if ( nargin == 5 )
+  assert( numel(bands) == numel(bandnames), 'Bands must match bandnames.' );
+else
+  shared_utils.assertions.assert__isa( bands, 'containers.Map', 'the band map' );
+  bandnames = keys( bands );
+  bands = values( bands );
+end
+
 assert_rowsmatch( data, labels );
 assert( numel(freqs) == size(data, fdim), 'Frequencies do not correspond to data.' );
 
@@ -32,5 +42,7 @@ for i = 1:numel(bands)
   banddat(rinds, clns{:}) = roi_data;
   stp = stp + rdat;
 end
+
+prune( bandlabs );
 
 end

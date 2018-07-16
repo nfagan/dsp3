@@ -4,8 +4,8 @@ drug_type = 'nondrug';
 
 conf = dsp3.config.load();
 
-date_dir = '061118';  % per day
-% date_dir = '061218';  % across days
+% date_dir = '061118';  % per day
+date_dir = '061218';  % across days
 lda_dir = fullfile( conf.PATHS.dsp2_analyses, 'lda', date_dir );
 
 lda = get_messy_lda_data( lda_dir );
@@ -84,10 +84,11 @@ pl.y_lims = [45, 55];
 
 % collapsecat( pltlabs, 'days' );
 
-I = findall( pltlabs, 'days', find(pltlabs, max_day_on) );
+% I = findall( pltlabs, 'days', find(pltlabs, max_day_on) );
 
 % mask = find( pltlabs, {'real_percent'}, I{1} );
-mask = I{1};
+% mask = I{1};
+mask = rowmask( pltlabs );
 
 D = pltdat(mask, :);
 L = pltlabs(mask);

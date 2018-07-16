@@ -10,10 +10,6 @@ end
 
 data_p = conf.PATHS.data_root;
 
-if ( isa(kind, 'char') )
-  p = fullfile( data_p, 'intermediates', kind );
-else
-  p = cellfun( @(x) fullfile(data_p, 'intermediates', x), kind, 'un', 0 );
-end
+p = shared_utils.io.fullfiles( data_p, 'intermediates', kind );
 
 end

@@ -1,4 +1,4 @@
-function [dat, labs] = a_summary_minus_b(data, labels, spec, a, b, func, mask)
+function [dat, labs] = a_summary_minus_b(data, labels, spec, a, b, func, varargin)
 
 %   A_SUMMARY_MINUS_B -- Subtract average of `B` from average of `A`, for
 %     each subset.
@@ -28,18 +28,15 @@ function [dat, labs] = a_summary_minus_b(data, labels, spec, a, b, func, mask)
 %       - `dat` (/T/)
 %       - `labs` (fcat)
 
-assert( rowsmatch(data, labels), 'Number of rows of data and labels must match.' );
+assert_rowsmatch( data, labels );
+assert_hascat( labels, spec );
 assert( isa(labels, 'fcat'), 'Labels must be an fcat object; was "%s".', class(labels) );
 
 if ( nargin < 6 || isempty(func) )
   func = @(x) nanmean( x, 1 );
 end
 
-if ( nargin < 7 )
-  [labs, I] = keepeach( labels', spec );
-else
-  [labs, I] = keepeach( labels', spec, mask );
-end
+[labs, I] = keepeach( labels', spec, varargin{:} );
 
 dat = zeros( joinsize(I, data) );
 clns = colons( ndims(data)-1 );

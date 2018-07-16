@@ -1,18 +1,22 @@
+function stats__gaze(varargin)
+
+defaults = dsp3.get_behav_stats_defaults();
+params = dsp3.parsestruct( defaults, varargin );
+
+drug_type = params.drug_type;
+do_save = params.do_save;
+
+path_components = { 'behavior', dsp3.datedir, drug_type, 'gaze' };
+
 consolidated = dsp3.get_consolidated_data();
 
 labs = fcat.from( consolidated.trial_data.labels );
 
-analysis_p = dsp3.analysisp( {'behavior', dsp3.datedir} );
+analysis_p = dsp3.analysisp( path_components );
 
 %%
 
-drug_type = 'nondrug';
-per_mag = true;
-do_save = true;
-
 spec = { 'outcomes', 'trialtypes', 'days', 'drugs', 'administration' };
-
-if ( per_mag ), spec{end+1} = 'magnitudes'; end
 
 [subsetlabs, I] = dsp3.get_subset( labs', drug_type );
 subsetdata = consolidated.trial_data.data(I, :);
@@ -24,6 +28,7 @@ trialkey = consolidated.trial_key;
 countdat(countdat > 0) = 1;
 
 spec = union( spec, newcats );
+magspec = union( spec, 'magnitudes' );
 
 %%
 
@@ -32,6 +37,9 @@ usedat = countdat;
 
 [plabs, I] = keepeach( uselabs', spec );
 pdat = rowop( usedat, I, @pnz );
+
+[maglabs, I] = keepeach( uselabs', magspec );
+magdat = rowop( usedat, I, @pnz );
 
 %%
 
@@ -159,8 +167,8 @@ end
 
 %%  anova with magnitude
 
-uselabs = addcat( plabs', 'comparison' );
-usedat = pdat;
+uselabs = addcat( maglabs', 'comparison' );
+usedat = magdat;
 
 alpha = 0.05;
 
@@ -168,7 +176,7 @@ mask = setdiff( find(uselabs, 'choice'), find(uselabs, 'errors') );
 
 factors = { 'outcomes', 'magnitudes' };
 
-anovas_each = setdiff( spec, union(factors, {'days'}) );
+anovas_each = setdiff( magspec, union(factors, {'days'}) );
 [alabs, I] = keepeach( uselabs', anovas_each, mask );
 
 clabs = fcat();
@@ -203,11 +211,11 @@ for i = 1:numel(I)
 end
 
 %   mean table
-[meanlabs, I] = keepeach( uselabs', setdiff(spec, 'days'), mask );
+[meanlabs, I] = keepeach( uselabs', setdiff(magspec, 'days'), mask );
 means = rownanmean( usedat, I );
 devs = rowop( usedat, I, @plotlabeled.nansem );
 
-[t, rc] = tabular( meanlabs, setdiff(spec, 'days') );
+[t, rc] = tabular( meanlabs, setdiff(magspec, 'days') );
 t_means = cellrefs( means, t );
 t_devs = cellrefs( devs, t );
 

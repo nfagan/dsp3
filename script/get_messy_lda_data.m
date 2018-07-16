@@ -24,8 +24,12 @@ ranges = horzcat( ranges{:} );
 assert( issorted(ranges) && all(diff(ranges) == 1) );
 
 full_fnames = percell( @(x) fullfile(lda_dir, x), fnames );
+files = cell( size(full_fnames) );
 
-files = percell( @shared_utils.io.fload, full_fnames );
+for i = 1:numel(files)
+  shared_utils.general.progress( i, numel(files) );
+  files{i} = shared_utils.io.fload( full_fnames{i} );
+end
 
 all_data = zeros( size(files{1}.data) );
 

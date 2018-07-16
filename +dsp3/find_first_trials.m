@@ -4,7 +4,10 @@ if ( nargin < 3 ), mask = 1:length(labs); end
 
 non_errs = setdiff( mask, find(labs, 'errors') );
 
-I = findall( labs, {'days', 'channels', 'regions', 'sites'}, non_errs );
+poss_cats = { 'days', 'channels', 'regions', 'sites' };
+poss_cats = poss_cats( hascat(labs, poss_cats) );
+
+I = findall( labs, poss_cats, non_errs );
 
 all_keep = trueat( labs, [] );
 

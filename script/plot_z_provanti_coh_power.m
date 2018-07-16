@@ -7,8 +7,8 @@ import shared_utils.io.fullfiles;
 
 epochs = { 'targacq' };
 drug_type = 'nondrug';
-manip = 'pro_v_anti';
-meas_types = { 'z_scored_raw_power', 'z_scored_coherence' };
+manip = { 'pro_v_anti', 'pro_minus_anti' };
+meas_types = { 'z_scored_coherence' };
 
 p = fullfiles( conf.PATHS.dsp2_analyses, meas_types, epochs, drug_type, manip );
 p = p( cellfun(@shared_utils.io.dexists, p) );
@@ -19,50 +19,7 @@ mats = shared_utils.io.find( p, '.mat' );
 
 %%
 
-cfunc = @shared_utils.char.contains;
-
-labs = cell( size(mats) );
-dat = cell( size(labs) );
-freqs = [];
-t = [];
-
-for i = 1:numel(mats)
-  shared_utils.general.progress( i, numel(mats) );
-  
-  file = mats{i};
-  
-  if ( cfunc(file, 'coherence') )
-    meas_t = 'coherence';
-  elseif ( cfunc(file, 'raw_power') )
-    meas_t = 'rawpower';
-  else
-    error( 'Failed to parse meas type from filename.' );
-  end
-  
-  meas = shared_utils.io.fload( file );
-  
-  t = meas.get_time_series();
-  freqs = meas.frequencies;
-  
-  t_ind = t >= -500 & t <= 500;
-  f_ind = freqs <= 100;
-  
-  lab = fcat.from( meas.labels );
-  setcat( addcat(lab, 'measure'), 'measure', meas_t );  
-  
-  labs{i} = lab;
-  dat{i} = meas.data(:, f_ind, t_ind);
-  
-  freqs = freqs(f_ind);
-  t = t(t_ind);
-end
-
-labels = vertcat( fcat(), labs{:} );
-data = vertcat( dat{:} );
-
-assert_rowsmatch( data, labels );
-assert( size(data, 2) == numel(freqs) );
-assert( size(data, 3) == numel(t) );
+[data, labels, freqs, t] = dsp3.load_signal_measure( mats );
 
 replace( labels, 'selfMinusBoth', 'anti' );
 replace( labels, 'otherMinusNone', 'pro' );
@@ -75,9 +32,9 @@ prefix = 'z_spectra';
 pltdat = data;
 pltlabs = labels';
 
-mask = find( pltlabs, {'choice', 'coherence'} );
+mask = find( pltlabs, {'choice', 'coherence', 'proMinusAnti'} );
 
-t_ind = t >= -500 & t <= 500;
+t_ind = t >= -350 & t <= 300;
 f_ind = true( size(freqs) );
 p_freqs = freqs(f_ind);
 p_t = t(t_ind);
@@ -110,12 +67,14 @@ t_meaned = squeeze( nanmean(data(:, :, t_ind), 3) );
 pltdat = t_meaned;
 pltlabs = labels';
 
-mask = find( pltlabs, {'choice', 'rawpower'} );
+mask = find( pltlabs, {'choice', 'coherence'} );
 
 pl = plotlabeled.make_common();
 pl.group_order = { 'pro', 'anti' };
 pl.x = freqs;
-pl.y_lims = [ -0.25, 0.25 ];
+pl.y_lims = [ -0.15, 0.15 ];
+pl.add_smoothing = true;
+pl.smooth_func = @(x) smooth(x, 4);
 
 pcats = { 'measure', 'regions', 'trialtypes' };
 gcats = { 'outcomes' };
@@ -123,6 +82,9 @@ gcats = { 'outcomes' };
 axs = pl.lines( pltdat(mask, :), pltlabs(mask), gcats, pcats );
 
 arrayfun( @(x) xlabel(x, 'Hz'), axs );
+
+shared_utils.plot.hold( axs );
+shared_utils.plot.add_horizontal_lines( axs, 0 );
 
 if ( do_save )
   shared_utils.io.require_dir( plot_p );
