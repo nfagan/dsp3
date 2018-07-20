@@ -18,7 +18,7 @@ drugt = params.drugt;
 epochs = params.epochs;
 
 path_components = { 'gamma_beta_ratio', dsp3.datedir, drugt };
-analysis_p = dsp3.analysisp( path_components );
+analysis_p = char( dsp3.analysisp(path_components) );
 
 intermediate_dirs = dsp3.fullfiles( meast, drugt, epochs );
 coh_p = dsp3.get_intermediate_dir( intermediate_dirs );
@@ -82,7 +82,7 @@ compcat = 'comparison';
 usedat = ratio;
 uselabs = addcat( bandlabs', compcat );
 
-alpha = 0.05;
+alpha = params.alpha;
 
 mask = findnone( uselabs, 'errors', findnot(uselabs, {'cued', 'targAcq'}) );
 

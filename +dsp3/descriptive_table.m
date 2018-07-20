@@ -1,8 +1,36 @@
-function [tbl, tvals, labels] = descriptive_table( data, labels, spec, funcs, varargin )
+function [tbl, tvals, labels, I] = descriptive_table( data, labels, spec, funcs, varargin )
 
 %   DESCRIPTIVE_TABLE -- Create a table of descriptive statistics.
 %
-%     T = descriptive_table( data, labels, spec, funcs )
+%     T = descriptive_table( data, labels, cats ) creates a table `T` whose
+%     columns are selected descriptive statistics of `data`, and whose rows
+%     are label combinations (groups) drawn from `cats` categories of 
+%     `labels`. `labels` is an fcat object with the same number of rows as
+%     `data`; `cats` is a cell array of strings or char.
+%     
+%     For each group, the number of rows (N), mean, median, and std 
+%     deviation of `data` associated with that group is calculated.
+%
+%     T = descriptive_table( ..., funcs ) uses `funcs` to generate columns
+%     of `T`. `funcs` is a cell array of function_handle, or a scalar
+%     function_handle. Specify `funcs` as the empty array ([]) to use the 
+%     default functions as above.
+%
+%     T = descriptve_table( ..., mask ) applies the uint64 index vector
+%     `mask` to `labels`, such that rows are only drawn from the `mask`
+%     subset of total rows of `data`.
+%
+%     [..., vals] = descriptive_table(...) also returns the contents of the
+%     table as a matrix.
+%
+%     [..., labs] = descriptive_table(...) also returns an fcat object
+%     `labs` that contains one row for each group drawn from `cats`.
+%
+%     [..., I] = descriptive_table(...) also returns a cell array of uint64
+%     indices `I` giving the rows of `data` associated with each group in
+%     `labs`.
+%
+%     See also fcat.table, fcat/keepeach, fcat, dsp3.descriptive_funcs
 %
 %     IN:
 %       - `data` (/T/)
@@ -14,8 +42,10 @@ function [tbl, tvals, labels] = descriptive_table( data, labels, spec, funcs, va
 %       - `tbl` (table)
 %       - `tval` (cell array of T)
 %       - `labels` (fcat)
+%       - `I` (cell array of uint64)
 
-assert_rowsmatch( data, labels );
+assert_ispair( data, labels );
+assert_hascat( labels, spec );
 
 if ( nargin < 4 || isempty(funcs) )
   funcs = get_default_funcs();
@@ -44,7 +74,7 @@ repset( rc{2}, desc, names );
 tvals = cellfun( @(x) cellrefs(x, t), vals, 'un', 0 );
 tvals = horzcat( tvals{:} );
 
-tbl = fcat.table( tvals, rc{:} );
+tbl = sortrows( fcat.table(tvals, rc{:}), 'RowNames' );
 
 end
 

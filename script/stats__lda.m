@@ -1,12 +1,18 @@
-function stats__lda()
+function stats__lda(varargin)
 
 import shared_utils.cell.percell;
 
-drug_type = 'nondrug';
+defaults = dsp3.get_behav_stats_defaults();
+defaults.per_day = false;
+defaults.smooth_func = @(x) smooth( x, 5 );
+params = dsp3.parsestruct( defaults, varargin );
+
+drug_type = params.drug_type;
 
 conf = dsp3.config.load();
 
-date_dir = '061118';  % per day
+date_dir = ternary( params.per_day, '061118', '061218' );
+% date_dir = '061118';  % per day
 % date_dir = '061218';  % across days
 lda_dir = fullfile( conf.PATHS.dsp2_analyses, 'lda', date_dir );
 
@@ -14,10 +20,10 @@ lda = get_messy_lda_data( lda_dir );
 
 if ( strcmp(drug_type, 'nondrug') ), lda('drugs') = '<drugs>'; end
 
-path_components = { 'lda', dsp3.datedir };
+path_components = { 'lda', dsp3.datedir, drug_type };
 
-plotp = dsp3.plotp( path_components );
-analysisp = dsp3.analysisp( path_components );
+params.plotp = char( dsp3.plotp(path_components) );
+params.analysisp = char( dsp3.analysisp(path_components) );
 
 %
 %
@@ -51,9 +57,13 @@ for i = 1:niters
   stp = stp + nrows;
 end
 
-params = struct();
+I = findall( newlabs, 'days' );
 
-compare_lines( newdat, newlabs', freqs, params );
+for i = 1:numel(I)
+  shared_utils.general.progress( i, numel(I), mfilename );
+  
+  compare_lines( rowref(newdat, I{i}), newlabs(I{i}), freqs, params );
+end
 
 end
 
@@ -63,7 +73,7 @@ F = figure(1);
 clf( F );
 set( F, 'defaultLegendAutoUpdate', 'off' );
 
-mask = find( labels, 'choice' );
+mask = findnot( labels, {'targAcq', 'cued'} );
 
 [threshs, sort_ind] = sort( [0.05, 0.001, 0.0001], 'descend' );
 colors = { 'y', 'g', 'r' };
@@ -72,7 +82,7 @@ colors = colors( sort_ind );
 assert( numel(colors) == numel(threshs) );
 
 gcats = { 'measure' };
-pcats = { 'trialtypes', 'drugs', 'administration', 'contexts' };
+pcats = { 'trialtypes', 'drugs', 'administration', 'contexts', 'days' };
 
 [newlabs, p_i, p_c] = keepeach( labels', pcats, mask );
 plabs = fcat.strjoin( p_c, [], ' | ' );
@@ -130,7 +140,7 @@ for i = 1:numel(p_i)
   lines = [ h1; h2 ];
   
   legend( lines, strrep(glabs, '_', ' ') );
-  title( ax, plabs{i} );
+  title( ax, strrep(plabs{i}, '_', ' ') );
   
   axs(i) = ax;
 end
@@ -162,12 +172,12 @@ end
 
 if ( do_save )
   prefix = 'pro_anti_coh';
-  shared_utils.io.require_dir( params.plot_p );
+  shared_utils.io.require_dir( params.plotp );
   
-  fname = dsp3.fname( newlabs, dsp3.nonun_or_other(newlabs, pcats) );
+  fname = dsp3.fname( newlabs, pcats );
   fname = dsp3.prefix( prefix, fname );
 
-  dsp3.savefig( gcf, fullfile(params.plot_p, fname) );
+  dsp3.savefig( gcf, fullfile(params.plotp, fname) );
 end
 
 end

@@ -30,7 +30,7 @@ function [dat, labs] = a_summary_minus_b(data, labels, spec, a, b, func, varargi
 
 assert_rowsmatch( data, labels );
 assert_hascat( labels, spec );
-assert( isa(labels, 'fcat'), 'Labels must be an fcat object; was "%s".', class(labels) );
+assert( fcat.is(labels), 'Labels must be an fcat object; was "%s".', class(labels) );
 
 if ( nargin < 6 || isempty(func) )
   func = @(x) nanmean( x, 1 );
