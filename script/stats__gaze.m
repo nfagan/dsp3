@@ -12,7 +12,7 @@ consolidated = dsp3.get_consolidated_data();
 
 labs = fcat.from( consolidated.trial_data.labels );
 
-analysis_p = dsp3.analysisp( path_components );
+analysis_p = char( dsp3.analysisp(path_components) );
 
 %%
 
@@ -27,8 +27,8 @@ trialkey = consolidated.trial_key;
 %   make binary
 countdat(countdat > 0) = 1;
 
-spec = union( spec, newcats );
-magspec = union( spec, 'magnitudes' );
+spec = csunion( spec, newcats );
+magspec = csunion( spec, 'magnitudes' );
 
 %%
 
@@ -101,7 +101,7 @@ repset( addcat(rc{2}, 'measure'), 'measure', {'mean', 'sem'} );
 mean_tbl = fcat.table( [t_means, t_devs], rc{:} );
 
 %   anova table
-[t, rc] = tabular( alabs, union(each_ts, 'comparison') );
+[t, rc] = tabular( alabs, csunion(each_ts, 'comparison') );
 t_mean_diffs = cellrefs( sig_comparisons(:, 4), t );
 t_ps = cellrefs( sig_comparisons(:, 6), t );
 repset( addcat(rc{2}, 'measure'), 'measure', {'mean difference', 'p value'} );
@@ -157,7 +157,7 @@ for i = 1:numel(I)
   setcat( tlabs, 'comparison', 'other vs. none', i );
 end
 
-row_names = fcat.strjoin( combs(tlabs, union(each_ts, {'comparison'})), [], ' | ' );
+row_names = fcat.strjoin( combs(tlabs, csunion(each_ts, {'comparison'})), [], ' | ' );
 
 tbl.Properties.RowNames = row_names(:);
 
@@ -167,16 +167,28 @@ end
 
 %%  anova with magnitude
 
+uselabs = maglabs';
+usedat = magdat;
+
+factors = { 'outcomes', 'magnitudes' };
+
+mask = fcat.mask( uselabs, @find, 'choice', @findnone, 'errors' );
+anovaspec = setdiff( magspec, csunion(factors, 'days') );
+
+outs = dsp3.anovan( usedat, uselabs', anovaspec, factors, 'mask', mask );
+
+%%  anova with magnitude
+
 uselabs = addcat( maglabs', 'comparison' );
 usedat = magdat;
 
 alpha = 0.05;
 
-mask = setdiff( find(uselabs, 'choice'), find(uselabs, 'errors') );
+mask = find( uselabs, 'choice', findnone(uselabs, 'errors') );
 
 factors = { 'outcomes', 'magnitudes' };
 
-anovas_each = setdiff( magspec, union(factors, {'days'}) );
+anovas_each = setdiff( magspec, csunion(factors, {'days'}) );
 [alabs, I] = keepeach( uselabs', anovas_each, mask );
 
 clabs = fcat();
@@ -187,16 +199,13 @@ for i = 1:numel(I)
   
   grps = cellfun( @(x) removecats(categorical(uselabs, x, I{i})), factors, 'un', 0 );
   
-  [p, tbl, stats] = anovan( usedat(I{i}), grps, 'display', 'off', 'varnames', factors, 'model', 'full' );
+  [p, tbl, stats] = anovan( usedat(I{i}), grps, 'display', 'off' ...
+    , 'varnames', factors, 'model', 'full' );
   
   sig_dims = find( p < alpha );
   sig_dims(sig_dims > numel(factors)) = [];
   
-  [c, ~, ~, g] = multcompare( stats, 'display', 'off', 'dimension', sig_dims );  
-  
-  cg = arrayfun( @(x) g(x), c(:, 1:2) );
-  cc = [ cg, arrayfun(@(x) x, c(:, 3:end), 'un', 0) ];
-  
+  [cc, c] = dsp3.multcompare( stats, 'dimension', sig_dims );  
   is_sig = c(:, end) < alpha;
   
   sig_c = cc(is_sig, :);
@@ -207,15 +216,15 @@ for i = 1:numel(I)
   end
   
   sig_comparisons = [ sig_comparisons; sig_c ];
-  tbls{i} = cell2table( tbl(2:end, :), 'VariableNames', matlab.lang.makeValidName( tbl(1, :)) );
+  tbls{i} = dsp3.anova_cell2table( tbl );
 end
 
 %   mean table
-[meanlabs, I] = keepeach( uselabs', setdiff(magspec, 'days'), mask );
+[meanlabs, I] = keepeach( uselabs', cssetdiff(magspec, 'days'), mask );
 means = rownanmean( usedat, I );
 devs = rowop( usedat, I, @plotlabeled.nansem );
 
-[t, rc] = tabular( meanlabs, setdiff(magspec, 'days') );
+[t, rc] = tabular( meanlabs, cssetdiff(magspec, 'days') );
 t_means = cellrefs( means, t );
 t_devs = cellrefs( devs, t );
 
@@ -224,7 +233,7 @@ repset( addcat(rc{2}, 'measure'), 'measure', {'mean', 'sem'} );
 m_tbl = fcat.table( [t_means, t_devs], rc{:} );
 
 %   comparisons table
-[t, rc] = tabular( clabs, union(anovas_each, 'comparison') );
+[t, rc] = tabular( clabs, csunion(anovas_each, 'comparison') );
 t_mean_diffs = cellrefs( sig_comparisons(:, 4), t );
 t_ps = cellrefs( sig_comparisons(:, 6), t );
 repset( addcat(rc{2}, 'measure'), 'measure', {'mean difference', 'p value'} );
@@ -239,6 +248,139 @@ if ( do_save )
     dsp3.savetbl( tbls{i}, analysis_p, alabs(i), anovas_each, 'gaze__magnitudes__anova' );
   end
 end
+
+%%  anova, test monkey per magnitude
+
+uselabs = addcat( maglabs', 'comparison' );
+usedat = magdat;
+
+alpha = 0.05;
+
+mask = fcat.mask( uselabs, @find, {'choice', 'bottle', 'none'}, @findnone, 'errors' );
+
+factor = 'magnitudes';
+
+anovas_each = setdiff( magspec, csunion(factor, 'days') );
+
+[alabs, I] = keepeach( uselabs', anovas_each, mask );
+
+clabs = fcat();
+sig_comparisons = {};
+tbls = cell( size(I) );
+
+for i = 1:numel(I)
+  
+  grp = removecats( categorical(uselabs, factor, I{i}) );
+  
+  [p, tbl, stats] = anova1( usedat(I{i}), grp, 'off' );
+  
+  [cc, c] = dsp3.multcompare( stats );
+  
+  is_sig = c(:, end) < alpha;
+  sig_c = cc(is_sig, :);
+  
+  for j = 1:size(sig_c, 1)
+    setcat( uselabs, 'comparison', sprintf('%s vs %s', sig_c{j, 1:2}) );
+    append1( clabs, uselabs, I{i} );
+  end
+  
+  sig_comparisons = [ sig_comparisons; sig_c ];
+  tbls{i} = dsp3.anova_cell2table( tbl );
+end
+
+
+%%  anova, test other per magnitude
+
+uselabs = addcat( maglabs', 'comparison' );
+usedat = magdat;
+
+alpha = 0.05;
+
+mask = find( uselabs, 'choice', findnone(uselabs, 'errors') );
+
+factors = { 'looks_to', 'magnitudes' };
+
+anovas_each = setdiff( magspec, csunion(factors, {'days'}) );
+[alabs, I] = keepeach( uselabs', anovas_each, mask );
+
+clabs = fcat();
+sig_comparisons = {};
+tbls = cell( size(I) );
+
+for i = 1:numel(I)
+  
+  grps = cellfun( @(x) removecats(categorical(uselabs, x, I{i})), factors, 'un', 0 );
+  
+  [p, tbl, stats] = anovan( usedat(I{i}), grps, 'display', 'off' ...
+    , 'varnames', factors, 'model', 'full' );
+  
+  sig_dims = find( p < alpha );
+  sig_dims(sig_dims > numel(factors)) = [];
+  
+  [cc, c] = dsp3.multcompare( stats, 'dimension', sig_dims );  
+  is_sig = c(:, end) < alpha;
+  
+  sig_c = cc(is_sig, :);
+  
+  for j = 1:size(sig_c, 1)
+    setcat( uselabs, 'comparison', sprintf('%s vs %s', sig_c{j, 1:2}) );
+    append1( clabs, uselabs, I{i} );
+  end
+  
+  sig_comparisons = [ sig_comparisons; sig_c ];
+  tbls{i} = dsp3.anova_cell2table( tbl );
+end
+
+%   mean table
+[meanlabs, I] = keepeach( uselabs', cssetdiff(magspec, 'days'), mask );
+means = rownanmean( usedat, I );
+devs = rowop( usedat, I, @plotlabeled.nansem );
+
+[t, rc] = tabular( meanlabs, cssetdiff(magspec, 'days') );
+t_means = cellrefs( means, t );
+t_devs = cellrefs( devs, t );
+
+repset( addcat(rc{2}, 'measure'), 'measure', {'mean', 'sem'} );
+
+m_tbl = fcat.table( [t_means, t_devs], rc{:} );
+
+%   comparisons table
+[t, rc] = tabular( clabs, csunion(anovas_each, 'comparison') );
+t_mean_diffs = cellrefs( sig_comparisons(:, 4), t );
+t_ps = cellrefs( sig_comparisons(:, 6), t );
+repset( addcat(rc{2}, 'measure'), 'measure', {'mean difference', 'p value'} );
+
+a_tbl = fcat.table( [t_mean_diffs, t_ps], rc{:} );
+
+if ( do_save )
+  dsp3.savetbl( a_tbl, analysis_p, clabs, anovas_each, 'gaze__magnitudes__comparisons' );
+  dsp3.savetbl( m_tbl, analysis_p, meanlabs, anovas_each, 'gaze__magnitudes__descriptives' );
+  
+  for i = 1:numel(tbls)
+    dsp3.savetbl( tbls{i}, analysis_p, alabs(i), anovas_each, 'gaze__magnitudes__anova' );
+  end
+end
+
+
+
+%%  plot per mag
+
+uselabs = maglabs';
+usedat = magdat;
+
+% mask = findnone( uselabs, 'errors' );
+
+mask = fcat.mask( uselabs, @findnone, 'errors', @findnone, dsp2.process.format.get_bad_days() ...
+  , @find, 'choice' );
+
+pl = plotlabeled.make_common();
+pl.x_order = { 'self', 'both', 'other', 'none' };
+pl.panel_order = { 'low', 'medium', 'high' };
+pl.y_lims = [0, 0.6];
+
+pl.errorbar( usedat(mask), uselabs(mask), 'outcomes', 'looks_to', {'magnitudes', 'look_period'} );
+
+% pl.bar( usedat(mask), uselabs(mask), {}, 'magnitudes', {'look_period'} );
 
 %%  plot
 

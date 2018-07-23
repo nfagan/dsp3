@@ -318,3 +318,86 @@ if ( per_magnitude )
   end
 
 end
+
+%%  anova with magnitude
+
+if ( per_magnitude )
+  
+  base_prefix = 'pcorr__magnitudes__within_context';
+
+  spec = csunion( pcorr_spec, 'contexts' );
+
+  uselabs = addcat( errlabs', 'comparison' );
+  usedat = pcorr;
+
+  alpha = 0.05;
+
+  mask = setdiff( find(uselabs, 'choice'), find(uselabs, 'errors') );
+
+  factors = { 'magnitudes' };
+
+  anovas_each = cssetdiff( spec, csunion(factors, {'days'}) );
+  [alabs, I] = keepeach( uselabs', anovas_each, mask );
+
+  clabs = fcat();
+  sig_comparisons = {};
+  tbls = cell( size(I) );
+
+  for i = 1:numel(I)
+
+    grp = removecats( categorical(uselabs, factors{1}, I{i}) );
+
+    [p, tbl, stats] = anova1( usedat(I{i}), grp, 'off' );
+
+    sig_dims = find( p < alpha );
+    sig_dims(sig_dims > numel(factors)) = [];
+
+    [c, ~, ~, g] = multcompare( stats, 'display', 'off', 'dimension', sig_dims );  
+
+    cg = arrayfun( @(x) g(x), c(:, 1:2) );
+    cc = [ cg, arrayfun(@(x) x, c(:, 3:end), 'un', 0) ];
+
+    is_sig = c(:, end) < alpha;
+
+    sig_c = cc(is_sig, :);
+
+    for j = 1:size(sig_c, 1)
+      setcat( uselabs, 'comparison', sprintf('%s vs %s', sig_c{j, 1:2}) );
+      append1( clabs, uselabs, I{i} );
+    end
+
+    sig_comparisons = [ sig_comparisons; sig_c ];
+    tbls{i} = cell2table( tbl(2:end, :), 'VariableNames', matlab.lang.makeValidName( tbl(1, :)) );
+  end
+
+  %   mean table
+  [meanlabs, I] = keepeach( uselabs', setdiff(spec, 'days'), mask );
+  means = rownanmean( usedat, I );
+  devs = rowop( usedat, I, @plotlabeled.nansem );
+
+  [t, rc] = tabular( meanlabs, setdiff(spec, 'days') );
+  t_means = cellrefs( means, t );
+  t_devs = cellrefs( devs, t );
+
+  repset( addcat(rc{2}, 'measure'), 'measure', {'mean', 'sem'} );
+
+  m_tbl = fcat.table( [t_means, t_devs], rc{:} );
+
+  %   comparisons table
+  [t, rc] = tabular( clabs, union(anovas_each, 'comparison') );
+  t_mean_diffs = cellrefs( sig_comparisons(:, 4), t );
+  t_ps = cellrefs( sig_comparisons(:, 6), t );
+  repset( addcat(rc{2}, 'measure'), 'measure', {'mean difference', 'p value'} );
+
+  a_tbl = fcat.table( [t_mean_diffs, t_ps], rc{:} );
+
+  if ( do_save )
+    dsp3.savetbl( a_tbl, analysis_p, clabs, anovas_each, sprintf('%s__comparisons', base_prefix) );
+    dsp3.savetbl( m_tbl, analysis_p, meanlabs, anovas_each, sprintf('%s__descriptives', base_prefix) );
+
+    for i = 1:numel(tbls)
+      dsp3.savetbl( tbls{i}, analysis_p, alabs(i), anovas_each, sprintf('%s__anova', base_prefix) );
+    end
+  end
+
+end

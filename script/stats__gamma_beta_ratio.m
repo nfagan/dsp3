@@ -32,6 +32,8 @@ basespec = { 'measure', 'epochs' };
   , 'get_meas_func', @(meas) meas.measure ...
 );
 
+dsp3.add_context_labels( labels );
+
 %%
 
 t_ind = t >= -250 & t <= 0;
@@ -73,6 +75,68 @@ tblspec = csunion( cssetdiff(subspec, {'days', 'sites', 'channels'}), 'outcomes'
 
 if ( do_save )
   dsp3.savetbl( m_tbl, analysis_p, mlabs, tblspec, 'proanti_descriptives' );
+end
+
+%%  1-way anova, outcome
+
+usedat = ratio;
+uselabs = bandlabs';
+
+anovaspec = csunion( basespec, {'trialtypes', 'drugs', 'regions', 'administration'} );
+factor = 'outcomes';
+
+mask = fcat.mask( uselabs, @findnone, 'errors', @findnot, {'cued', 'targAcq'} );
+
+outs = dsp3.anova1( usedat, uselabs', anovaspec, factor, 'mask', mask );
+
+m_tbl = outs.descriptive_tables;
+mlabs = outs.descriptive_labels';
+
+a_tbls = outs.anova_tables;
+alabs = outs.anova_labels';
+
+c_tbls = outs.comparison_tables;
+
+if ( do_save )
+  dsp3.savetbl( m_tbl, analysis_p, mlabs, anovaspec, 'descriptives' );
+  
+  for i = 1:numel(a_tbls)
+    dsp3.savetbl( a_tbls{i}, analysis_p, alabs(i), anovaspec, 'anova_table' );
+    dsp3.savetbl( c_tbls{i}, analysis_p, alabs(i), anovaspec, 'comparisons' );
+  end
+end
+
+%%  t-test per context
+
+usedat = ratio;
+uselabs = bandlabs';
+
+tspec = csunion( basespec, {'trialtypes', 'drugs', 'regions', 'administration', 'contexts'} );
+factor = 'outcomes';
+
+mask = fcat.mask( uselabs, @findnone, 'errors', @findnot, {'cued', 'targAcq'} );
+
+[tlabs, I] = keepeach( uselabs', tspec, mask );
+
+tbls = cell( size(I) );
+
+for i = 1:numel(I)
+  [inds, C] = findall( uselabs, factor, I{i} );
+  
+  assert( numel(inds) == 2 );
+  
+  [~, p, ~, stats] = ttest2( usedat(inds{1}), usedat(inds{2}) );
+  stats.p = p;
+  
+  setcat( tlabs, factor, sprintf('%s vs %s', C{:}), i );
+  
+  tbls{i} = struct2table( stats );
+end
+
+if ( do_save )
+  for i = 1:numel(tbls)
+    dsp3.savetbl( tbls{i}, analysis_p, tlabs(i), tspec, 'per_context_ttest' );
+  end
 end
 
 %%  1-way anova, outcome
