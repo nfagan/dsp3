@@ -1,15 +1,19 @@
 function kept = dsp3_get_granger(varargin)
 
+defaults.config = dsp3.config.load();
 defaults.drug_type = 'nondrug';
 defaults.use_sd_thresh = true;
-defaults.config = dsp3.config.load();
+defaults.epoch = 'targacq';
+defaults.sd_threshold = 1.5;
 
 params = dsp3.parsestruct( defaults, varargin );
 
 drug_type = params.drug_type;
+epoch = params.epoch;
 conf = params.config;
+sd_threshold = params.sd_threshold;
 
-assert( all(ismember(drug_type, {'nondrug', 'drug', 'replication'})) ...
+assert( all(ismember(drug_type, {'nondrug', 'drug', 'replication', 'old'})) ...
   , 'Unrecognized manipulation "%s".', drug_type );
 
 is_drug = strcmpi( drug_type, 'drug' );
@@ -22,31 +26,32 @@ m_within = { 'outcomes', 'trialtypes', 'regions', 'permuted', 'channels' ...
 use_sd_thresh = params.use_sd_thresh;
 
 if ( ~is_drug )
-%   subdir = 'null';  % MAIN NON_DRUG RESULT 
-%   subdir = fullfile( '121117', 'non_drug_null' ); % reward
-%   subdir = fullfile( '120717', 'non_drug_null' ); % targacq
-%   subdir = fullfile( '071718_repl_350', 'non_drug_null' );
   if ( strcmp(drug_type, 'replication') )
     subdir = fullfile( '071718_repl_350', 'non_drug_null' );
+  elseif ( strcmp(drug_type, 'old') )
+    subdir = 'null';
   else
-    subdir = fullfile( '071618_fullfreqs', 'non_drug_null' );
+    if ( strcmp(epoch, 'targacq') )
+      subdir = '071618_fullfreqs';
+    elseif ( strcmp(epoch, 'reward') )
+      subdir = '072318_350';
+    else
+      error( 'Unrecognized epoch "%s".', epoch );
+    end
+    subdir = fullfile( subdir, 'non_drug_null' );
   end
-%   subdir = fullfile( '071518', 'non_drug_null' );
-%   subdir = fullfile( '071318', 'non_drug_null' ); % targacq, redux
-%   subdir = fullfile( '121217', 'non_drug_null' ); % targon
-%   subdir = 'null';
 else
   subdir = 'drug_effect_null';
 end
 
 load_p = fullfile( conf.PATHS.dsp2_analyses, 'granger', subdir );
 
-[per_epoch, files] = dsp2.analysis.granger.load_granger( load_p, 'targacq', is_drug, m_within );
+[per_epoch, files] = dsp2.analysis.granger.load_granger( load_p, epoch, is_drug, m_within );
 
 %%
 
 if ( use_sd_thresh )
-  kept = dsp2.analysis.granger.granger_sd_threshold( per_epoch, 1.5 );
+  kept = dsp2.analysis.granger.granger_sd_threshold( per_epoch, sd_threshold );
 else
   kept = per_epoch;
 end

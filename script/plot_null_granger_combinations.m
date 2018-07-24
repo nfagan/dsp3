@@ -1,8 +1,9 @@
 conf = dsp3.config.load();
 
-drug_type = 'nondrug';
+drug_type = 'old';
+epoch = 'targacq';
 
-kept = dsp3_get_granger( 'drug_type', drug_type, 'config', conf );
+kept = dsp3_get_granger( 'drug_type', drug_type, 'config', conf, 'epoch', epoch );
 
 %%
 
@@ -17,10 +18,10 @@ for i = 1:size(c, 2)
   is_proanti = proantis( c(2, i) );
 
   plot_null_granger( kept ...
-    , 'drug_type', drug_type ...
+    , 'drug_type',  drug_type ...
     , 'is_permonk', is_permonk ...
     , 'is_proanti', is_proanti ...
-    , 'config', conf ...
+    , 'config',     conf ...
   );
 
 end
