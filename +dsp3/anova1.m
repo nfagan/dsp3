@@ -1,5 +1,47 @@
 function outs = anova1(data, labels, spec, factor, varargin)
 
+%   ANOVA1 -- 1-Way ANOVA, for each subset.
+%
+%     outs = ... anova1( data, labels, spec, factor ) runs a 1-way ANOVA
+%     for the group `factor`, for each subset of `data` identified by a
+%     combination of labels in `spec` categories. `labels` is an fcat
+%     object with the same number of rows as `data`. `outs` is a struct
+%     with the following fields:
+%
+%       - 'anova_tables' (cell array of table) -- Mx1 cell array of anova
+%         tables for the M label combinations.
+%       - 'anova_labels' (fcat) -- MxN fcat object identifying rows of
+%         'anova_tables'.
+%       - 'comparison_tables' (cell array of table) -- Mx1 cell array of
+%         tables for the significant multiple comparisons for the M label
+%         combinations. Rows of 'comparison_tables' are identified by
+%         'anova_labels'.
+%       - 'descriptive_tables' (table) -- Table of descriptive statistics
+%         of `data`.
+%       - 'descriptive_labels (fcat) -- MxN fcat object identifying rows of
+%         'descriptive_tables'.
+%
+%     outs = ... anova1( 'name', value ) specifies additional paired
+%     inputs. Valid inputs are:
+%
+%       - 'mask' (double, uint64) -- Applies a mask to the data and labels
+%         so that combinations are restricted to the rows identified by the
+%         mask.
+%       - 'alpha' (double) -- Significance threshold. Default is 0.05.
+%       - 'descriptive_funcs' (cell array of function_handle) -- Array of
+%         handles to functions used to summarize `data`. Default is {@mean,
+%         @median, @rows}
+%
+%     Specify `spec` as an empty cell array ({}) to avoid 
+%
+%     IN:
+%       - `data` (double)
+%       - `labels` (fcat)
+%       - `spec` (cell array of strings, char)
+%       - `factors` (cell array of strings)
+%     OUT:
+%       - `outs` (struct)
+
 assert_ispair( data, labels );
 assert_hascat( labels, csunion(spec, factor) );
 
@@ -17,7 +59,12 @@ funcs = params.descriptive_funcs;
 
 addcat( labels, compcat );
 
-[alabs, I] = keepeach( labels', spec, mask );
+if ( iscell(spec) && isempty(spec) )
+  alabs = one( labels' );
+  I = { mask };
+else
+  [alabs, I] = keepeach( labels', spec, mask );
+end
 
 c_tbls = cell( size(I) );
 a_tbls = cell( size(I) );
