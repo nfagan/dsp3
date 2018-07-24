@@ -18,8 +18,8 @@ mag_type = ternary( per_mag, 'magnitude', 'non_magnitude' );
 
 path_components = { 'behavior', dsp3.datedir, drug_type, 'rt', mag_type };
 
-analysis_p = dsp3.analysisp( path_components );
-plot_p = dsp3.plotp( path_components );
+analysis_p = char( dsp3.analysisp(path_components) );
+plot_p = char( dsp3.plotp(path_components) );
 
 %%
 
@@ -102,80 +102,62 @@ end
 %%  anova with magnitude
 
 if ( per_mag )
-
-  uselabs = addcat( subsetlabs', 'comparison' );
+  pref = 'rt__magnitudes__';
+  
+  uselabs = subsetlabs';
   usedat = subsetrt;
-
-  alpha = 0.05;
-
-  mask = setdiff( find(uselabs, 'choice'), find(uselabs, 'errors') );
-
+  
+  mask = fcat.mask( uselabs, @find, 'choice', @findnone, 'errors' );
   factors = { 'outcomes', 'magnitudes' };
-
   anovas_each = setdiff( spec, union(factors, {'days'}) );
-  [alabs, I] = keepeach( uselabs', anovas_each, mask );
-
-  clabs = fcat();
-  sig_comparisons = {};
-  tbls = cell( size(I) );
-
-  for i = 1:numel(I)
-
-    grps = cellfun( @(x) removecats(categorical(uselabs, x, I{i})), factors, 'un', 0 );
-
-    [p, tbl, stats] = anovan( usedat(I{i}), grps, 'display', 'off', 'varnames', factors, 'model', 'full' );
-
-    sig_dims = find( p < alpha );
-    sig_dims(sig_dims > numel(factors)) = [];
-
-    [c, ~, ~, g] = multcompare( stats, 'display', 'off', 'dimension', sig_dims );  
-
-    cg = arrayfun( @(x) g(x), c(:, 1:2) );
-    cc = [ cg, arrayfun(@(x) x, c(:, 3:end), 'un', 0) ];
-
-    is_sig = c(:, end) < alpha;
-
-    sig_c = cc(is_sig, :);
-
-    for j = 1:size(sig_c, 1)
-      setcat( uselabs, 'comparison', sprintf('%s vs %s', sig_c{j, 1:2}) );
-      append1( clabs, uselabs, I{i} );
-    end
-
-    sig_comparisons = [ sig_comparisons; sig_c ];
-    tbls{i} = cell2table( tbl(2:end, :), 'VariableNames', matlab.lang.makeValidName( tbl(1, :)) );
-  end
-
-  %   mean table
-  [meanlabs, I] = keepeach( uselabs', setdiff(spec, 'days'), mask );
-  means = rownanmean( usedat, I );
-  devs = rowop( usedat, I, @plotlabeled.nansem );
-
-  [t, rc] = tabular( meanlabs, setdiff(spec, 'days') );
-  t_means = cellrefs( means, t );
-  t_devs = cellrefs( devs, t );
-
-  repset( addcat(rc{2}, 'measure'), 'measure', {'mean', 'sem'} );
-
-  m_tbl = fcat.table( [t_means, t_devs], rc{:} );
-
-  %   comparisons table
-  [t, rc] = tabular( clabs, union(anovas_each, 'comparison') );
-  t_mean_diffs = cellrefs( sig_comparisons(:, 4), t );
-  t_ps = cellrefs( sig_comparisons(:, 6), t );
-  repset( addcat(rc{2}, 'measure'), 'measure', {'mean difference', 'p value'} );
-
-  a_tbl = fcat.table( [t_mean_diffs, t_ps], rc{:} );
-
+  
+  outs = dsp3.anovan( usedat, uselabs', anovas_each, factors, 'mask', mask );
+  
   if ( do_save )
-    dsp3.savetbl( a_tbl, analysis_p, clabs, anovas_each, 'rt__magnitudes__comparisons' );
-    dsp3.savetbl( m_tbl, analysis_p, meanlabs, anovas_each, 'rt__magnitudes__descriptives' );
-
-    for i = 1:numel(tbls)
-      dsp3.savetbl( tbls{i}, analysis_p, alabs(i), anovas_each, 'rt__magnitudes__anova' );
+    a_tbls = outs.anova_tables;
+    a_labs = outs.anova_labels';
+    
+    c_tbls = outs.comparison_tables;
+    
+    m_tbl = outs.descriptive_tables;
+    m_labs = outs.descriptive_labels';
+    
+    for i = 1:numel(a_tbls)
+      dsp3.savetbl( a_tbls{i}, analysis_p, a_labs(i), anovas_each, sprintf('%sanova', pref) );
+      dsp3.savetbl( c_tbls{i}, analysis_p, a_labs(i), anovas_each, sprintf('%scomparisons', pref) );
     end
+    
+    dsp3.savetbl( m_tbl, analysis_p, m_labs, anovas_each, sprintf('%sdescriptives', pref) );    
   end
+end
 
+%%  t test for each context
+
+pref = 'rt__t_per_context__';
+
+usedat = subsetrt;
+uselabs = subsetlabs';
+
+usespec = cssetdiff( spec, {'days', 'outcomes'} );
+
+mask = fcat.mask( uselabs, @find, 'choice', @findnone, 'errors' );
+
+outs = dsp3.ttest2( usedat, uselabs', usespec, 'selfboth', 'othernone' ...
+  , 'mask', mask ...
+);
+
+m_tbl = outs.descriptive_tables;
+mlabs = outs.descriptive_labels;
+meanspec = outs.descriptive_specificity;
+t_tbls = outs.t_tables;
+tlabs = outs.t_labels;
+
+if ( do_save )
+  dsp3.savetbl( m_tbl, analysis_p, mlabs, meanspec, sprintf('%sdescriptives', pref) );
+  
+  for i = 1:numel(t_tbls)
+    dsp3.savetbl( t_tbls{i}, analysis_p, tlabs(i), usespec, sprintf('%st_tables', pref) );
+  end
 end
 
 %%
@@ -191,7 +173,7 @@ pl.error_func = @plotlabeled.nansem;
 pl.x_order = { 'self', 'both', 'other', 'none' };
 pl.group_order = { 'low', 'medium', 'high' };
 
-mask = setdiff( find(pltlabs, 'choice'), find( pltlabs, {'errors'}) );
+mask = fcat.mask( pltlabs, @find, 'choice', @findnone, 'errors' );
 
 pl.bar( pltdat(mask), pltlabs(mask), 'outcomes', 'magnitudes', {'drugs', 'trialtypes'} );
 

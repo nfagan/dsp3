@@ -9,7 +9,7 @@ function c = nonun_or_all(labs, cats)
 %     A non-uniform category is one for which multiple different labels are
 %     present entries in the category.
 %
-%     See also dsp3.nonuniform_or_other
+%     See also dsp3.nonun_or_other
 %
 %     IN:
 %       - `labs` (fcat)

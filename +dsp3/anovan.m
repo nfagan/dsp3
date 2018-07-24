@@ -57,6 +57,7 @@ defaults.anovan_inputs = { 'display', 'off', 'varnames', factors, 'model', 'full
 defaults.dimension = 'auto';
 
 params = dsp3.parsestruct( defaults, varargin );
+validate_params( params );
 
 mask = params.mask;
 compcat = params.comparison_category;
@@ -91,6 +92,10 @@ for i = 1:numel(I)
     sig_dims = dim;
   end
   
+  if ( isempty(sig_dims) )
+    continue;
+  end
+  
   [cc, c] = dsp3.multcompare( stats, 'dimension', sig_dims );
   
   issig = c(:, end) < alpha;
@@ -109,5 +114,13 @@ outs.anova_labels = alabs;
 outs.comparison_tables = c_tbls;
 outs.descriptive_tables = m_tbl;
 outs.descriptive_labels = mlabs;
+
+end
+
+function validate_params(params)
+
+if ( ischar(params.dimension) )
+  assert( strcmpi(params.dimension, 'auto'), 'Dimension must be numeric, or "auto".' );
+end
 
 end
