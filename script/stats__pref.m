@@ -14,7 +14,8 @@ labs = fcat.from( consolidated.trial_data.labels );
 mag_type = ternary( per_mag, 'magnitude', 'non_magnitude' );
 
 path_components = { 'behavior', dsp3.datedir, drug_type, 'pref', mag_type };
-analysis_p = dsp3.analysisp( path_components );
+analysis_p = char( dsp3.analysisp(path_components) );
+plot_p = char( dsp3.plotp(path_components) );
 
 %%
 
@@ -132,3 +133,34 @@ if ( per_mag )
   end
 
 end
+
+%%  per mag plot
+
+if ( per_mag )
+  prefix = 'per_magnitude_preference';
+  
+  uselabs = preflabs';
+  usedat = prefdat;
+  
+  pl = plotlabeled.make_common();
+  pl.sort_combinations = true;
+  pl.group_order = { 'low', 'medium', 'high' };
+  
+  mask = fcat.mask( uselabs, @find, 'choice' );
+  xcats = 'outcomes';
+  gcats = 'magnitudes';
+  pcats = { 'trialtypes' };
+  
+  pl.bar( usedat(mask), uselabs(mask), xcats, gcats, pcats );
+  
+  if ( do_save )
+    fnames = unique( cshorzcat(xcats, gcats, pcats) );
+    fnames = dsp3.nonun_or_all( uselabs, fnames );
+    
+    dsp3.req_savefig( gcf, plot_p, uselabs(mask), fnames, prefix );
+  end
+end
+
+end
+
+
