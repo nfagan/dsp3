@@ -1,5 +1,11 @@
 function params = parsestruct(params,args)
 
+assert( iscell(args), 'Arguments must be cell array.' );
+
+if ( numel(args) == 1 && isstruct(args{1}) )
+  args = dsp3.struct2varargin( args{1} );
+end
+
 names = fieldnames(params);
 
 nArgs = length(args);

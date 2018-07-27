@@ -1,21 +1,35 @@
-function plot_pref_index_over_time()
+function plot_pref_index_over_time(varargin)
 
 import dsp2.process.format.add_trial_bin;
 import shared_utils.container.cat_parse_double;
 
-conf = dsp3.config.load();
+defaults = dsp3.get_behav_stats_defaults();
+defaults.drug_type = 'drug';
+defaults.do_permute = false;
+defaults.config = dsp3.config.load();
 
-combined = dsp3.get_consolidated_data();
+params = dsp3.parsestruct( defaults, varargin );
 
-behav = combined.trial_data;
+conf = params.config;
+drug_type = params.drug_type;
+is_permonk = params.per_monkey;
+do_save = params.do_save;
+do_permute = params.do_permute;
+bs = params.base_subdir;
 
-drug_type = 'drug';
+if ( ~dsp3.isdrug(drug_type) )
+  return;
+end
 
-is_drug = true;
-is_permonk = false;
-do_permute = false;
+if ( isempty(params.consolidated) )
+  combined = dsp3.get_consolidated_data( conf );
+else
+  combined = params.consolidated;
+end
 
-behav = dsp3.get_subset( behav, drug_type );
+behav = require_fields( combined.trial_data, { 'channels', 'regions', 'sites' } );
+
+behav = remove( dsp3.get_subset(behav, drug_type), params.remove );
 
 % if ( strcmp(drug_type, 'nondrug') )
 %   [unspc, tmp_behav] = behav.pop( 'unspecified' );
@@ -29,7 +43,9 @@ behav = dsp3.get_subset( behav, drug_type );
 %   behav = behav.only( 'unspecified' );
 % end
 
-plot_save_p = fullfile( conf.PATHS.data_root, 'plots' );
+path_components = { 'behavior', dsp3.datedir, bs, drug_type, 'pref_index_over_time' };
+
+plot_save_p = char( dsp3.plotp(path_components, conf) );
 
 %%
 
@@ -97,8 +113,6 @@ pref(isnan(pref.data) | isinf(pref.data)) = [];
 save_p = fullfile( plot_save_p, 'behavior', 'preference_index_over_trials', datestr(now, 'mmddyy') );
 
 n_keep_post = 6;
-
-do_save = true;
 
 drug_colors = { 'r', 'b' };
 

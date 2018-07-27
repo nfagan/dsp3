@@ -5,14 +5,20 @@ params = dsp3.parsestruct( defaults, varargin );
 
 drug_type = params.drug_type;
 do_save = params.do_save;
+bs = params.base_subdir;
+conf = params.config;
 
-path_components = { 'behavior', dsp3.datedir, drug_type, 'gaze' };
+path_components = { 'behavior', dsp3.datedir, bs, drug_type, 'gaze' };
 
-consolidated = dsp3.get_consolidated_data();
+if ( isempty(params.consolidated) )
+  consolidated = dsp3.get_consolidated_data( conf );
+else
+  consolidated = params.consolidated;
+end
 
 labs = fcat.from( consolidated.trial_data.labels );
 
-analysis_p = char( dsp3.analysisp(path_components) );
+analysis_p = char( dsp3.analysisp(path_components, conf) );
 
 %%
 
@@ -23,6 +29,8 @@ subsetdata = consolidated.trial_data.data(I, :);
 trialkey = consolidated.trial_key;
 
 [countdat, countlabs, newcats] = dsp3.get_gaze_counts( subsetdata, subsetlabs', trialkey );
+
+countdat = indexpair( countdat, countlabs, findnone(countlabs, params.remove) );
 
 %   make binary
 countdat(countdat > 0) = 1;

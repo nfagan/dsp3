@@ -4,10 +4,10 @@ import shared_utils.io.fullfiles;
 
 defaults = dsp3.get_behav_stats_defaults();
 defaults.do_save = true;
+defaults.remove = {};
 defaults.smooth_func = @(x) smooth(x, 4);
 defaults.drug_type = 'nondrug';
 defaults.epochs = 'targacq';
-defaults.config = dsp3.config.load();
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -15,16 +15,17 @@ conf = params.config;
 
 epochs =      params.epochs;
 drug_type =   params.drug_type;
+bs =          params.base_subdir;
 manips =      'pro_v_anti';
 meas_types =  'z_scored_coherence';
 
 p = fullfiles( conf.PATHS.dsp2_analyses, meas_types, epochs, drug_type, manips );
 p = p( cellfun(@shared_utils.io.dexists, p) );
 
-components = { 'spectra', dsp3.datedir(), drug_type };
+components = { 'spectra', dsp3.datedir(), bs, drug_type };
 
-plot_p = char( dsp3.plotp(components) );
-analysis_p = char( dsp3.analysisp(components) );
+plot_p = char( dsp3.plotp(components, conf) );
+analysis_p = char( dsp3.analysisp(components, conf) );
 
 params.plot_p = plot_p;
 params.analysis_p = analysis_p;
@@ -40,7 +41,9 @@ mats = shared_utils.io.find( p, '.mat' );
 replace( labels, 'selfMinusBoth', 'anti' );
 replace( labels, 'otherMinusNone', 'pro' );
 
-if ( strcmp(drug_type, 'nondrug') ), collapsecat( labels, 'drugs' ); end
+if ( ~dsp3.isdrug(drug_type) ), collapsecat( labels, 'drugs' ); end
+
+data = indexpair( data, labels, findnone(labels, params.remove) );
 
 %
 %
@@ -124,7 +127,8 @@ F = figure(1);
 clf( F );
 set( F, 'defaultLegendAutoUpdate', 'off' );
 
-isdrug = dsp3.isdrug( params.drug_type );
+is_drug = dsp3.isdrug( params.drug_type );
+per_monk = params.per_monkey;
 
 mask = find( labels, 'choice' );
 
@@ -134,13 +138,15 @@ colors = colors( sort_ind );
 
 assert( numel(colors) == numel(threshs) );
 
-if ( isdrug )
+if ( is_drug )
   gcats = { 'drugs' };
   pcats = { 'trialtypes', 'outcomes', 'administration', 'measure' };
 else
   gcats = { 'outcomes' };
   pcats = { 'trialtypes', 'drugs', 'administration', 'measure' };
 end
+
+if ( per_monk ), pcats{end+1} = 'monkeys'; end
 
 [newlabs, p_i, p_c] = keepeach( labels', pcats, mask );
 plabs = fcat.strjoin( p_c, [], ' | ' );
@@ -206,9 +212,9 @@ shared_utils.plot.hold( axs );
 shared_utils.plot.match_xlims( axs );
 shared_utils.plot.match_ylims( axs );
 
-if ( ~isdrug )
-  arrayfun( @(x) set(x, 'ylim', [-0.15, 0.15]), axs );
-end
+% if ( ~is_drug )
+%   arrayfun( @(x) set(x, 'ylim', [-0.15, 0.15]), axs );
+% end
 
 markersize = 8;
 

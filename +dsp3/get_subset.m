@@ -81,7 +81,9 @@ end
 
 function data = get_cont_subset(data, drug_type, keep_spec)
 
-if ( strcmp(drug_type, 'nondrug') )
+rem_bad = true;
+
+if ( dsp3.isnondrug(drug_type) )
   [unspc, tmp_behav] = data.pop( 'unspecified' );
   if ( ~isempty(unspc) )
     unspc = unspc.for_each( keep_spec, @dsp2.process.format.keep_350, 350 ); 
@@ -89,8 +91,10 @@ if ( strcmp(drug_type, 'nondrug') )
   tmp_behav = append( tmp_behav, unspc );
   data = dsp2.process.manipulations.non_drug_effect( tmp_behav );
   data('drugs') = '<drugs>';
-elseif ( strcmp(drug_type, 'drug') )
+  rem_bad = strcmp( drug_type, 'nondrug' );
+elseif ( dsp3.isdrug(drug_type) )
   data = data.rm( 'unspecified' );
+  rem_bad = strcmp( drug_type, 'drug' );
 elseif ( strcmp(drug_type, 'full') )
   %
 else
@@ -98,6 +102,8 @@ else
   data = data.only( 'unspecified' );
 end
 
-data = dsp2.process.format.rm_bad_days( data );
+if ( rem_bad )
+  data = dsp2.process.format.rm_bad_days( data );
+end
 
 end

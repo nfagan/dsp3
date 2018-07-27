@@ -7,17 +7,23 @@ drug_type = params.drug_type;
 per_mag = params.per_magnitude;
 per_monk = params.per_monkey;
 do_save = params.do_save;
+bs = params.base_subdir;
+conf = params.config;
 
-consolidated = dsp3.get_consolidated_data();
+if ( isempty(params.consolidated) )
+  consolidated = dsp3.get_consolidated_data( conf );
+else
+  consolidated = params.consolidated;
+end
 
 labs = fcat.from( consolidated.trial_data.labels );
 
 mag_type = ternary( per_mag, 'magnitude', 'non_magnitude' );
 is_drug = dsp3.isdrug( drug_type );
 
-path_components = { 'behavior', dsp3.datedir, drug_type, 'pref', mag_type };
-analysis_p = char( dsp3.analysisp(path_components) );
-plot_p = char( dsp3.plotp(path_components) );
+path_components = { 'behavior', dsp3.datedir, bs, drug_type, 'pref', mag_type };
+analysis_p = char( dsp3.analysisp(path_components, conf) );
+plot_p = char( dsp3.plotp(path_components, conf) );
 
 %%
 
@@ -28,6 +34,8 @@ if ( per_mag ), spec{end+1} = 'magnitudes'; end
 subsetlabs = dsp3.get_subset( labs', drug_type );
 
 [prefdat, preflabs] = dsp3.get_pref( subsetlabs', setdiff(spec, 'outcomes') );
+
+prefdat = indexpair( prefdat, preflabs, findnone(preflabs, params.remove) );
 
 replace( preflabs, 'selfMinusBoth', 'selfboth' );
 replace( preflabs, 'otherMinusNone', 'othernone' );
@@ -153,7 +161,7 @@ if ( per_mag )
   mask = fcat.mask( uselabs, @find, 'choice' );
   xcats = 'outcomes';
   gcats = 'magnitudes';
-  pcats = { 'trialtypes' };
+  pcats = dsp3.nonun_or_all( uselabs, {'trialtypes', 'monkeys'} );
   
   pl.bar( usedat(mask), uselabs(mask), xcats, gcats, pcats );
   
@@ -172,6 +180,8 @@ if ( is_drug )
   
   uselabs = preflabs';
   usedat = prefdat;
+  
+  if ( ~per_monk ), collapsecat(uselabs, 'monkeys'); end
   
   pl = plotlabeled.make_common();
   pl.sort_combinations = true;
@@ -193,6 +203,32 @@ if ( is_drug )
     
     dsp3.req_savefig( gcf, plot_p, uselabs(mask), fnames, prefix );
   end
+else
+  prefix = 'preference';
+  
+  uselabs = preflabs';
+  usedat = prefdat;
+  
+  if ( ~per_monk ), collapsecat(uselabs, 'monkeys'); end
+  
+  pl = plotlabeled.make_common();
+  pl.sort_combinations = true;
+  
+  mask = fcat.mask( uselabs, @find, 'choice' );
+  xcats = 'outcomes';
+  gcats = 'drugs';
+  pcats = { 'monkeys' };
+  
+  pcats = dsp3.nonun_or_all( uselabs, pcats );
+  
+  pl.bar( usedat(mask), uselabs(mask), xcats, gcats, pcats );
+  
+  if ( do_save )
+    fnames = unique( cshorzcat(xcats, gcats, pcats) );
+    fnames = dsp3.nonun_or_all( uselabs, fnames );
+    
+    dsp3.req_savefig( gcf, plot_p, uselabs(mask), fnames, prefix );
+  end  
 end
 
 end

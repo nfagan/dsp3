@@ -6,20 +6,26 @@ params = dsp3.parsestruct( defaults, varargin );
 drug_type = params.drug_type;
 per_mag = params.per_magnitude;
 do_save = params.do_save;
+bs = params.base_subdir;
+conf = params.config;
 
 %%
 
-consolidated = dsp3.get_consolidated_data();
+if ( isempty(params.consolidated) )
+  consolidated = dsp3.get_consolidated_data( conf );
+else
+  consolidated = params.consolidated;
+end
 
 labs = fcat.from( consolidated.trial_data.labels );
 rt = consolidated.reaction_time;
 
 mag_type = ternary( per_mag, 'magnitude', 'non_magnitude' );
 
-path_components = { 'behavior', dsp3.datedir, drug_type, 'rt', mag_type };
+path_components = { 'behavior', dsp3.datedir, bs, drug_type, 'rt', mag_type };
 
-analysis_p = char( dsp3.analysisp(path_components) );
-plot_p = char( dsp3.plotp(path_components) );
+analysis_p = char( dsp3.analysisp(path_components, conf) );
+plot_p = char( dsp3.plotp(path_components, conf) );
 
 %%
 
@@ -29,6 +35,8 @@ if ( per_mag ), spec{end+1} = 'magnitudes'; end
 
 [subsetlabs, I] = dsp3.get_subset( labs', drug_type );
 subsetrt = rt(I);
+
+subsetrt = indexpair( subsetrt, subsetlabs, findnone(subsetlabs, params.remove) );
 
 [subsetlabs, I] = keepeach( subsetlabs, spec );
 subsetrt = rownanmean( subsetrt, I );
@@ -67,7 +75,10 @@ for j = 1:numel(pairs)
   end
 end
 
-[t, rc] = tabular( tlabs, {'outcomes', 'measure'}, {'trialtypes', 'magnitudes'} );
+rowcats = dsp3.nonun_or_all( tlabs, {'outcomes', 'measure', 'drugs', 'administration'} );
+colcats = dsp3.nonun_or_all( tlabs, {'trialtypes', 'magnitudes'} );
+
+[t, rc] = tabular( tlabs, rowcats, colcats );
 
 ps_tbl = fcat.table( cellfun(@(x) ps(x), t), rc{:} );
 
@@ -86,7 +97,10 @@ mask = setdiff( find(subsetlabs, 'choice'), find(subsetlabs, 'errors') );
 means = rownanmean( subsetrt, I );
 devs = rowop( subsetrt, I, @plotlabeled.nansem );
 
-[t, rc] = tabular( meanlabs, 'outcomes', {'trialtypes', 'drugs', 'magnitudes'} );
+rowcats = dsp3.nonun_or_all( meanlabs, {'outcomes', 'administration'} );
+colcats = dsp3.nonun_or_all( meanlabs, {'trialtypes', 'drugs', 'magnitudes'} );
+
+[t, rc] = tabular( meanlabs, rowcats, colcats );
 
 t_means = cellfun( @(x) means(x), t );
 t_devs = cellfun( @(x) devs(x), t );

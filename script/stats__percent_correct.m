@@ -9,15 +9,21 @@ do_save = params.do_save;
 
 mag_type = ternary( per_magnitude, 'magnitude', 'non_magnitude' );
 
-conf = dsp3.config.load();
-dr = conf.PATHS.data_root;
-datedir = datestr( now, 'mmddyy' );
-plot_p = fullfile( dr, 'plots', 'behavior', datedir, 'percent_correct' );
-analysis_p = fullfile( dr, 'analyses', 'behavior', datedir, drug_type, 'percent_correct', mag_type );
+conf = params.config;
+bs = params.base_subdir;
+
+path_components = { 'behavior', dsp3.datedir, bs, drug_type, 'percent_correct', mag_type };
+
+plot_p = char( dsp3.plotp(path_components, conf) );
+analysis_p = char( dsp3.analysisp(path_components, conf) );
 
 %%
 
-combined = dsp3.get_consolidated_data();
+if ( isempty(params.consolidated) )
+  combined = dsp3.get_consolidated_data( conf );
+else
+  combined = params.consolidated;
+end
 
 behav = require_fields( combined.trial_data, {'channels', 'regions', 'sites'} );
 %   choice errors are choice trials where choice time is 0
@@ -29,6 +35,8 @@ behav = dsp3.get_subset( behav, drug_type );
 
 behavdat = behav.data;
 behavlabs = fcat.from( behav.labels );
+
+behavdat = indexpair( behavdat, behavlabs, findnone(behavlabs, params.remove) );
 
 setcat( addcat(behavlabs, 'drugtypes'), 'drugtypes', drug_type );
 setcat( addcat(behavlabs, 'errortypes'), 'errortypes', 'no_errors' );
@@ -100,7 +108,7 @@ use_labs = repset( addcat(meanlabs', 'measure'), 'measure', {'mean', 'std'} );
 
 [T, rc] = tabular( use_labs, spec, 'measure' );
 dat = [ meancorr; stdcorr ];
-T = fcat.table( cellfun(@(x) dat(x), T, 'un', false), rc{:} )
+T = fcat.table( cellfun(@(x) dat(x), T, 'un', false), rc{:} );
 
 if ( do_save )
   fname = fcat.trim( joincat(prune(use_labs), spec) );
@@ -131,7 +139,7 @@ cts = cellfun( @numel, I );
 
 dat = cellfun( @(x) cts(x), t );
 
-T = fcat.table( dat, rc{:} )
+T = fcat.table( dat, rc{:} );
 
 if ( do_save )
   fname = fcat.trim( joincat(prune(countlabs), spec) );
@@ -189,7 +197,7 @@ for i = 1:2
 
   repset( addcat(rc{1}, 'measure'), 'measure', {'mean', 'sem'} );
 
-  tbl = fcat.table( [means; errs], rc{:} )
+  tbl = fcat.table( [means; errs], rc{:} );
 
   if ( do_save )
     shared_utils.io.require_dir( analysis_p );
@@ -228,7 +236,10 @@ for j = 1:numel(pairs)
   end
 end
 
-[t, rc] = tabular( tlabs, {'measure', 'outcomes'}, {'trialtypes', 'magnitudes'} );
+rowcats = dsp3.nonun_or_all( tlabs, {'measure', 'outcomes', 'drugs', 'administration'} );
+colcats = dsp3.nonun_or_all( tlabs, {'trialtypes', 'magnitudes'} );
+
+[t, rc] = tabular( tlabs, rowcats, colcats );
 
 ps_tbl = fcat.table( cellfun(@(x) ps(x), t), rc{:} );
 
