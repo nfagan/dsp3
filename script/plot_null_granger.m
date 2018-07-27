@@ -4,6 +4,7 @@ defaults.drug_type = 'nondrug';
 defaults.save_figs = true;
 defaults.is_proanti = true;
 defaults.is_permonk = false;
+defaults.base_subdir = '';
 defaults.base_prefix = '';
 defaults.lims = [];
 defaults.config = dsp3.config.load();
@@ -12,6 +13,7 @@ params = dsp3.parsestruct( defaults, varargin );
 
 conf = params.config;
 drug_type = params.drug_type;
+base_subdir = params.base_subdir;
 
 assert( all(ismember(drug_type, {'nondrug', 'drug', 'replication', 'old'})) ...
   , 'Unrecognized manipulation "%s".', drug_type );
@@ -31,7 +33,7 @@ epochdir = strjoin( kept('epochs'), '_' );
 
 outcome_order = ternary( is_proanti, {'pro', 'anti'}, {'self', 'both', 'other', 'none'} );
 
-plotp = fullfile( plotp, drug_type, epochdir, monkdir, prodir );
+plotp = fullfile( plotp, base_subdir, drug_type, epochdir, monkdir, prodir );
 
 %%  MAKE PRO V ANTI
 

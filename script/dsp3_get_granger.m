@@ -4,6 +4,7 @@ defaults.config = dsp3.config.load();
 defaults.drug_type = 'nondrug';
 defaults.use_sd_thresh = true;
 defaults.epoch = 'targacq';
+defaults.choice_kind = 'pre_choice';
 defaults.sd_threshold = 1.5;
 
 params = dsp3.parsestruct( defaults, varargin );
@@ -32,7 +33,12 @@ if ( ~is_drug )
     subdir = 'null';
   else
     if ( strcmp(epoch, 'targacq') )
-      subdir = '071618_fullfreqs';
+      if ( strcmp(params.choice_kind, 'pre_choice') )
+        subdir = '071618_fullfreqs';
+      else
+        assert( strcmp(params.choice_kind, 'post_choice'), 'Unrecognized choice kind.' );
+        subdir = '072418_350';
+      end
     elseif ( strcmp(epoch, 'reward') )
       subdir = '072318_350';
     else
