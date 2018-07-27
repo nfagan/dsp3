@@ -1,17 +1,13 @@
-function [dat, labs] = summary_binary_op( data, labels, spec, a, b, opfunc, sfunc, mask )
+function [dat, labs] = summary_binary_op(data, labels, spec, a, b, opfunc, sfunc, varargin)
 
-assert( rowsmatch(data, labels), 'Number of rows of data and labels must match.' );
-assert( isa(labels, 'fcat'), 'Labels must be an fcat object; was "%s".', class(labels) );
+assert_ispair( data, labels );
+assert_hascat( labels, spec );
 
 if ( nargin < 7 || isempty(sfunc) )
   sfunc = @(x) nanmean( x, 1 );
 end
 
-if ( nargin < 8 )
-  [labs, I] = keepeach( labels', spec );
-else
-  [labs, I] = keepeach( labels', spec, mask );
-end
+[labs, I] = keepeach( labels', spec, varargin{:} );
 
 dat = zeros( joinsize(I, data) );
 clns = colons( ndims(data)-1 );

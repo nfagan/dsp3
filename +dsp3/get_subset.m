@@ -28,7 +28,7 @@ bad_days_ind = trueat( labs, findor(labs, dsp2.process.format.get_bad_days()) );
 good_days_ind = find( ~bad_days_ind );
 
 switch ( kind )
-  case 'nondrug'
+  case { 'nondrug', 'nondrug_wbd' }
     %   keep first 350 trials for non-injection "unspecified" days.
     if ( isempty(addtl) )
       each_inds = { 1:length(labs) }; 
@@ -50,14 +50,25 @@ switch ( kind )
     
     I = sal_pre_ind | oxy_pre_ind | unspc_ind;
     
-    I = find( I & ~bad_days_ind );
+    if ( strcmp(kind, 'nondrug') )
+      I = find( I & ~bad_days_ind );
+    else
+      I = find( I );
+    end
     
     keep( labs, I );
     
     setcat( labs, 'administration', 'pre' );
     setcat( labs, 'drugs', makecollapsed(labs, 'drugs') );
   case 'drug'
+    %
+    % regular drug
     I = findor( labs, {'saline', 'oxytocin'}, good_days_ind );
+    keep( labs, I );
+  case 'drug_wbd'
+    %
+    % drug with bad days
+    I = findor( labs, {'saline', 'oxytocin'} );
     keep( labs, I );
   case 'full'
     I = good_days_ind;

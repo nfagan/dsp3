@@ -3,7 +3,7 @@ function stats__lda(varargin)
 import shared_utils.cell.percell;
 
 defaults = dsp3.get_behav_stats_defaults();
-defaults.per_day = false;
+defaults.specificity = 'contexts';
 defaults.smooth_func = @(x) smooth( x, 5 );
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -11,14 +11,16 @@ drug_type = params.drug_type;
 
 conf = dsp3.config.load();
 
-date_dir = ternary( params.per_day, '061118', '061218' );
+date_dir = get_data_dir( params.specificity );
 % date_dir = '061118';  % per day
 % date_dir = '061218';  % across days
+% date_dir = '072418';  % per site
 lda_dir = fullfile( conf.PATHS.dsp2_analyses, 'lda', date_dir );
 
 lda = get_messy_lda_data( lda_dir );
 
 if ( strcmp(drug_type, 'nondrug') ), lda('drugs') = '<drugs>'; end
+if ( ~strcmp(params.specificity, 'sites') ), lda('channels') = '<channels>'; end
 
 path_components = { 'lda', dsp3.datedir, drug_type };
 
@@ -57,23 +59,23 @@ for i = 1:niters
   stp = stp + nrows;
 end
 
-I = findall( newlabs, 'days' );
+I = findall( newlabs, {'days', 'channels'} );
 
 for i = 1:numel(I)
   shared_utils.general.progress( i, numel(I), mfilename );
   
-  compare_lines( rowref(newdat, I{i}), newlabs(I{i}), freqs, params );
+  compare_lines( newdat, newlabs, freqs, I{i}, params );
 end
 
 end
 
-function compare_lines( tdata, labels, freqs, params )
+function compare_lines( tdata, labels, freqs, basemask, params )
 
 F = figure(1);
 clf( F );
 set( F, 'defaultLegendAutoUpdate', 'off' );
 
-mask = findnot( labels, {'targAcq', 'cued'} );
+mask = findnot( labels, {'targAcq', 'cued'}, basemask );
 
 [threshs, sort_ind] = sort( [0.05, 0.001, 0.0001], 'descend' );
 colors = { 'y', 'g', 'r' };
@@ -82,7 +84,9 @@ colors = colors( sort_ind );
 assert( numel(colors) == numel(threshs) );
 
 gcats = { 'measure' };
-pcats = { 'trialtypes', 'drugs', 'administration', 'contexts', 'days' };
+pcats = { 'trialtypes', 'drugs', 'administration', 'contexts', 'days', 'channels' };
+
+pcats = dsp3.nonun_or_all( labels, pcats );
 
 [newlabs, p_i, p_c] = keepeach( labels', pcats, mask );
 plabs = fcat.strjoin( p_c, [], ' | ' );
@@ -174,12 +178,26 @@ if ( do_save )
   prefix = 'pro_anti_coh';
   shared_utils.io.require_dir( params.plotp );
   
-  fname = dsp3.fname( newlabs, pcats );
+  fname = dsp3.fname( newlabs, csunion(pcats, 'channels') );
   fname = dsp3.prefix( prefix, fname );
 
   dsp3.savefig( gcf, fullfile(params.plotp, fname) );
 end
 
+end
+
+function date_dir = get_data_dir(spec)
+
+switch ( spec )
+  case 'contexts'
+    date_dir = '061218';
+  case 'days'
+    date_dir = '061118';
+  case 'sites'
+    date_dir = '072418';
+  otherwise
+    error( 'Unrecognized specificty "%s".', spec );
+end
 end
 
 

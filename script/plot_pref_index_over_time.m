@@ -1,3 +1,5 @@
+function plot_pref_index_over_time()
+
 import dsp2.process.format.add_trial_bin;
 import shared_utils.container.cat_parse_double;
 
@@ -10,18 +12,22 @@ behav = combined.trial_data;
 drug_type = 'drug';
 
 is_drug = true;
+is_permonk = false;
+do_permute = false;
 
-if ( strcmp(drug_type, 'nondrug') )
-  [unspc, tmp_behav] = behav.pop( 'unspecified' );
-  unspc = unspc.for_each( 'days', @dsp2.process.format.keep_350, 350 ); 
-  tmp_behav = append( tmp_behav, unspc );
-  behav = dsp2.process.manipulations.non_drug_effect( tmp_behav );
-elseif ( strcmp(drug_type, 'drug') )
-  behav = behav.rm( 'unspecified' );
-else
-  assert( strcmp(drug_type, 'unspecified'), 'Unrecognized drug type "%s"', drug_type );
-  behav = behav.only( 'unspecified' );
-end
+behav = dsp3.get_subset( behav, drug_type );
+
+% if ( strcmp(drug_type, 'nondrug') )
+%   [unspc, tmp_behav] = behav.pop( 'unspecified' );
+%   unspc = unspc.for_each( 'days', @dsp2.process.format.keep_350, 350 ); 
+%   tmp_behav = append( tmp_behav, unspc );
+%   behav = dsp2.process.manipulations.non_drug_effect( tmp_behav );
+% elseif ( strcmp(drug_type, 'drug') )
+%   behav = behav.rm( 'unspecified' );
+% else
+%   assert( strcmp(drug_type, 'unspecified'), 'Unrecognized drug type "%s"', drug_type );
+%   behav = behav.only( 'unspecified' );
+% end
 
 plot_save_p = fullfile( conf.PATHS.data_root, 'plots' );
 
@@ -96,69 +102,83 @@ do_save = true;
 
 drug_colors = { 'r', 'b' };
 
-drugs = pref.pcombs( 'drugs' );
+if ( ~is_permonk ), pref = collapse( pref, 'monkeys' ); end
 
-fig = figure(1);
-clf( fig );
-
-h = gobjects( 1, size(drugs, 1) );
+drugs = pref.pcombs( {'drugs'} );
 
 slopes = Container();
 
-for idx = 1:size( drugs, 1 )
-  
-plt = pref( {'choice', drugs{idx, 1}} );
+monk = pref.pcombs( 'monkeys' );
 
-bin_pre = max( cat_parse_double('trial_bin__', plt.uniques_where('trial_bin', 'pre')) );
-bin_post = max( cat_parse_double('trial_bin__', plt.uniques_where('trial_bin', 'post')) );
+for monk_idx = 1:numel(monk)
+  
+  fig = figure(1);
+  clf( fig );
+  h = gobjects( 1, size(drugs, 1) );
+  
+  monk_str = strjoin( monk(monk_idx, :), '_' );
+  monk_dat = pref( monk(monk_idx, :) );
 
-[t_series_means, t_series_errs, map, outs] = dsp3.get_pref_over_time_means_errs( plt );
+  for idx = 1:size( drugs, 1 )
 
-max_post = bin_pre + n_keep_post;
+  plt = monk_dat( cshorzcat('choice', drugs(idx, :)) );
 
-t_series_means = t_series_means(:, 1:max_post);
-t_series_errs = t_series_errs(:, 1:max_post);
+  bin_pre = max( cat_parse_double('trial_bin__', plt.uniques_where('trial_bin', 'pre')) );
+  bin_post = max( cat_parse_double('trial_bin__', plt.uniques_where('trial_bin', 'post')) );
 
-for i = 1:size(t_series_means, 1)
-  subplot( 2, 1, i );
-  means = t_series_means(i, :);
-  errs = t_series_errs(i, :);
-  
-  h(idx) = errorbar( 1:numel(means), means, errs );
-  hold on;
-  plot( [bin_pre+0.5, bin_pre+0.5], get(gca, 'ylim'), 'k' );
-  title_str = strjoin( outs(i), ' | ' );
-  title( strrep(title_str, '_', ' ') );
-  
-  color = get( h(idx), 'color' );
-  
-  x_fit = 1:numel( means );
-  
-  ps = polyfit( x_fit, means, 1 );
-  
-  res = polyval( ps, x_fit );
-  
-  h_1 = plot( x_fit, res );
-  
-  set( h_1, 'color', color );
-  
-  cont = one( plt );
-  cont('outcomes') = outs(i);
-  
-  slopes = append( slopes, set_data(cont, ps(1)) );
-end
+  [t_series_means, t_series_errs, map, outs] = dsp3.get_pref_over_time_means_errs( plt );
 
-end
+  max_post = bin_pre + n_keep_post;
 
-legend( h, drugs );
+  t_series_means = t_series_means(:, 1:max_post);
+  t_series_errs = t_series_errs(:, 1:max_post);
 
-if ( do_save )
-  shared_utils.io.require_dir( save_p );
-  fname = sprintf( 'saline_vs_ot_error_bars_small_limits_bin%d_step%d', N, step_size );
-  shared_utils.plot.save_fig( gcf, fullfile(save_p, fname), {'fig', 'png', 'epsc'} );
+  for i = 1:size(t_series_means, 1)
+    subplot( 2, 1, i );
+    means = t_series_means(i, :);
+    errs = t_series_errs(i, :);
+
+    h(idx) = errorbar( 1:numel(means), means, errs );
+    hold on;
+    plot( [bin_pre+0.5, bin_pre+0.5], get(gca, 'ylim'), 'k' );
+    title_str = strjoin( outs(i), ' | ' );
+    title( strrep(title_str, '_', ' ') );
+
+    color = get( h(idx), 'color' );
+
+    x_fit = 1:numel( means );
+
+    ps = polyfit( x_fit, means, 1 );
+
+    res = polyval( ps, x_fit );
+
+    h_1 = plot( x_fit, res );
+
+    set( h_1, 'color', color );
+
+    cont = one( plt );
+    cont('outcomes') = outs(i);
+
+    slopes = append( slopes, set_data(cont, ps(1)) );
+  end
+
+  end
+  
+  labs = dsp2.util.general.array_join( drugs, ' | ' );
+
+  legend( h, labs );
+
+  if ( do_save )
+    shared_utils.io.require_dir( save_p );
+    fname = sprintf( 'saline_vs_ot_error_bars_small_limits_bin%d_step%d', N, step_size );
+    fname = sprintf( '%s_%s', monk_str, fname );
+    shared_utils.plot.save_fig( gcf, fullfile(save_p, fname), {'fig', 'png', 'epsc'} );
+  end
 end
 
 %%  permute
+
+if ( do_permute )
 
 n_keep_post = 6;
 n_reps = 1e3;
@@ -255,6 +275,8 @@ for i = 1:numel(I)
   stat_data = [ real_slope, p_val ];
   
   stats = append( stats, set_data(subset_real, stat_data) );
+end
+
 end
 
 

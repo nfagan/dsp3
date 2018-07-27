@@ -1,16 +1,20 @@
 function stats__proanti_coh(varargin)
 
+import shared_utils.io.fullfiles;
+
 defaults = dsp3.get_behav_stats_defaults();
 defaults.do_save = true;
 defaults.smooth_func = @(x) smooth(x, 4);
+defaults.drug_type = 'nondrug';
+defaults.epochs = 'targacq';
+defaults.config = dsp3.config.load();
+
 params = dsp3.parsestruct( defaults, varargin );
 
-import shared_utils.io.fullfiles;
+conf = params.config;
 
-conf = dsp3.config.load();
-
-epochs =      'targacq';
-drug_type =   'nondrug';
+epochs =      params.epochs;
+drug_type =   params.drug_type;
 manips =      'pro_v_anti';
 meas_types =  'z_scored_coherence';
 
@@ -19,8 +23,8 @@ p = p( cellfun(@shared_utils.io.dexists, p) );
 
 components = { 'spectra', dsp3.datedir(), drug_type };
 
-plot_p = dsp3.plotp( components );
-analysis_p = dsp3.analysisp( components );
+plot_p = char( dsp3.plotp(components) );
+analysis_p = char( dsp3.analysisp(components) );
 
 params.plot_p = plot_p;
 params.analysis_p = analysis_p;
@@ -120,6 +124,8 @@ F = figure(1);
 clf( F );
 set( F, 'defaultLegendAutoUpdate', 'off' );
 
+isdrug = dsp3.isdrug( params.drug_type );
+
 mask = find( labels, 'choice' );
 
 [threshs, sort_ind] = sort( [0.05, 0.001], 'descend' );
@@ -128,8 +134,13 @@ colors = colors( sort_ind );
 
 assert( numel(colors) == numel(threshs) );
 
-gcats = { 'outcomes' };
-pcats = { 'trialtypes', 'drugs', 'administration', 'measure' };
+if ( isdrug )
+  gcats = { 'drugs' };
+  pcats = { 'trialtypes', 'outcomes', 'administration', 'measure' };
+else
+  gcats = { 'outcomes' };
+  pcats = { 'trialtypes', 'drugs', 'administration', 'measure' };
+end
 
 [newlabs, p_i, p_c] = keepeach( labels', pcats, mask );
 plabs = fcat.strjoin( p_c, [], ' | ' );
@@ -195,7 +206,9 @@ shared_utils.plot.hold( axs );
 shared_utils.plot.match_xlims( axs );
 shared_utils.plot.match_ylims( axs );
 
-arrayfun( @(x) set(x, 'ylim', [-0.15, 0.15]), axs );
+if ( ~isdrug )
+  arrayfun( @(x) set(x, 'ylim', [-0.15, 0.15]), axs );
+end
 
 markersize = 8;
 

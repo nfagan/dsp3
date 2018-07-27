@@ -5,6 +5,7 @@ params = dsp3.parsestruct( defaults, varargin );
 
 drug_type = params.drug_type;
 per_mag = params.per_magnitude;
+per_monk = params.per_monkey;
 do_save = params.do_save;
 
 consolidated = dsp3.get_consolidated_data();
@@ -12,6 +13,7 @@ consolidated = dsp3.get_consolidated_data();
 labs = fcat.from( consolidated.trial_data.labels );
 
 mag_type = ternary( per_mag, 'magnitude', 'non_magnitude' );
+is_drug = dsp3.isdrug( drug_type );
 
 path_components = { 'behavior', dsp3.datedir, drug_type, 'pref', mag_type };
 analysis_p = char( dsp3.analysisp(path_components) );
@@ -142,6 +144,8 @@ if ( per_mag )
   uselabs = preflabs';
   usedat = prefdat;
   
+  if ( ~per_monk ), collapsecat(uselabs, 'monkeys'); end
+  
   pl = plotlabeled.make_common();
   pl.sort_combinations = true;
   pl.group_order = { 'low', 'medium', 'high' };
@@ -150,6 +154,36 @@ if ( per_mag )
   xcats = 'outcomes';
   gcats = 'magnitudes';
   pcats = { 'trialtypes' };
+  
+  pl.bar( usedat(mask), uselabs(mask), xcats, gcats, pcats );
+  
+  if ( do_save )
+    fnames = unique( cshorzcat(xcats, gcats, pcats) );
+    fnames = dsp3.nonun_or_all( uselabs, fnames );
+    
+    dsp3.req_savefig( gcf, plot_p, uselabs(mask), fnames, prefix );
+  end
+end
+
+%%  drug plot
+
+if ( is_drug )
+  prefix = 'preference';
+  
+  uselabs = preflabs';
+  usedat = prefdat;
+  
+  pl = plotlabeled.make_common();
+  pl.sort_combinations = true;
+  pl.x_order = { 'saline', 'oxytocin' };
+  pl.group_order = { 'pre', 'post' };
+  
+  mask = fcat.mask( uselabs, @find, 'choice' );
+  xcats = 'drugs';
+  gcats = 'administration';
+  pcats = { 'outcomes', 'monkeys' };
+  
+  pcats = dsp3.nonun_or_all( uselabs, pcats );
   
   pl.bar( usedat(mask), uselabs(mask), xcats, gcats, pcats );
   
