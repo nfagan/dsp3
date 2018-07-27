@@ -1,9 +1,14 @@
 conf = dsp3.config.load();
 
-drug_type = 'old';
+drug_type = 'nondrug';
 epoch = 'targacq';
 
-kept = dsp3_get_granger( 'drug_type', drug_type, 'config', conf, 'epoch', epoch );
+kept = dsp3_get_granger( ...
+    'drug_type',      drug_type ...
+  , 'config',         conf ...
+  , 'epoch',          epoch ...
+  , 'use_sd_thresh',  false ...
+);
 
 %%
 
