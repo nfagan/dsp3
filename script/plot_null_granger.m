@@ -4,6 +4,8 @@ defaults.drug_type = 'nondrug';
 defaults.save_figs = true;
 defaults.is_proanti = true;
 defaults.is_permonk = false;
+defaults.base_prefix = '';
+defaults.lims = [];
 defaults.config = dsp3.config.load();
 
 params = dsp3.parsestruct( defaults, varargin );
@@ -18,7 +20,8 @@ save_figs = params.save_figs;
 is_drug = strcmpi( drug_type, 'drug' );
 is_proanti = params.is_proanti;
 is_permonk = params.is_permonk;
-base_prefix = params.drug_type;
+
+base_prefix = sprintf( '%s%s', params.drug_type, params.base_prefix );
 
 plotp = char( dsp3.plotp({'granger', dsp3.datedir}, conf) );
 
@@ -57,31 +60,6 @@ replace( labs, 'selfMinusBoth', 'anti' );
 
 %%
 
-% prefix = base_prefix;
-% 
-% fig = figure(1); 
-% clf( fig );
-% 
-% lines = dsp3.nonun_or_all( labs, {'administration', 'permuted'} );
-% panels = dsp3.nonun_or_all( labs, {'outcomes', 'drugs', 'regions', 'epochs', 'trialtypes', 'monkeys'} );
-% 
-% pl = ContainerPlotter();
-% pl.shape = [2, 4];
-% pl.x = freqs;
-% pl.one_legend = true;
-% pl.params.add_ribbon = true;
-% % pl.y_lim = [-0.02, 0.02];
-% 
-% plt = replace( kept_copy, 'otherMinusNone', 'pro' );
-% plt = replace( plt, 'selfMinusBoth', 'anti' );
-% 
-% pl.plot( plt, lines, panels );
-% 
-% f = FigureEdits( gcf );
-% f.one_legend;
-
-%%
-
 prefix = base_prefix;
 
 lines = dsp3.nonun_or_all( labs, {'administration', 'permuted'} );
@@ -110,6 +88,10 @@ pl.fig = fig;
 pl.shape = [2, 4];
 pl.panel_order = outcome_order;
 % set_smoothing( pl, 5 );
+
+if ( ~isempty(params.lims) )
+  pl.y_lims = params.lims;
+end
 
 axs = pl.lines( rowref(dat, mask), labs(mask), lines, panels );
 
