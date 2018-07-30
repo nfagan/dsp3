@@ -412,3 +412,43 @@ if ( per_magnitude )
   end
 
 end
+
+%% drug
+
+if ( dsp3.isdrug(drug_type) )
+  
+  base_prefix = 'pcorr';
+  
+  uselabs = errlabs';
+  usedat = pcorr;
+  
+  opfunc = @minus;
+  sfunc = @nanmean;
+  
+  sub_a = 'post';
+  sub_b = 'pre';
+  
+  subspec = cssetdiff( csunion(pcorr_spec, 'contexts'), 'administration' );
+  tspec = cssetdiff( subspec, 'days' );
+  
+  a = 'oxytocin';
+  b = 'saline';
+    
+  [subdat, sublabs] = dsp3.summary_binary_op( usedat, uselabs', subspec, sub_a, sub_b, opfunc, sfunc );
+  
+  outs = dsp3.ttest2( subdat, sublabs', tspec, a, b );
+  
+  if ( do_save )
+    t_tbls = outs.t_tables;
+    t_labs = outs.t_labels;
+    m_tbls = outs.descriptive_tables;
+    m_labs = outs.descriptive_labels;
+    
+    for i = 1:numel(t_tbls)
+      dsp3.savetbl( t_tbls{i}, analysis_p, t_labs(i), tspec, sprintf('%s__ttest', base_prefix) );
+    end
+    
+    dsp3.savetbl( m_tbls, analysis_p, m_labs, tspec, sprintf('%s__descriptives', base_prefix) );
+  end
+end
+

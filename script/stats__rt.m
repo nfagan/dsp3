@@ -195,3 +195,48 @@ if ( do_save )
   fname = dsp3.prefix( prefix, dsp3.fname(pltlabs, {'outcomes', 'drugs', 'trialtypes'}) );
   dsp3.savefig( gcf, fullfile(plot_p, fname) );
 end
+
+%%  drug anova
+
+if ( dsp3.isdrug(drug_type) )
+  
+  base_prefix = 'rt_drug';
+  
+  uselabs = subsetlabs';
+  usedat = subsetrt;
+  
+  opfunc = @minus;
+  sfunc = @nanmean;
+  
+  sub_a = 'post';
+  sub_b = 'pre';
+  
+  factors = { 'outcomes', 'drugs' };
+  
+  subspec = cssetdiff( spec, 'administration' );
+  aspec = cssetdiff( subspec, csunion(factors, 'days') );
+  
+  mask = fcat.mask( uselabs, @findnone, 'errors', @find, 'choice' );
+    
+  [subdat, sublabs] = dsp3.summary_binary_op( usedat, uselabs', subspec ...
+    , sub_a, sub_b, opfunc, sfunc, mask );
+  
+  outs = dsp3.anovan( subdat, sublabs', aspec, factors );
+  
+  if ( do_save )
+    a_tbls = outs.anova_tables;
+    a_labs = outs.anova_labels;
+    m_tbls = outs.descriptive_tables;
+    m_labs = outs.descriptive_labels;
+    c_tbls = outs.comparison_tables;
+    
+    for i = 1:numel(a_tbls)
+      dsp3.savetbl( a_tbls{i}, analysis_p, a_labs(i), aspec, sprintf('%s__anova_tables', base_prefix) );
+      dsp3.savetbl( c_tbls{i}, analysis_p, a_labs(i), aspec, sprintf('%s__anova_comparisons', base_prefix) );
+    end
+    
+    dsp3.savetbl( m_tbls, analysis_p, m_labs, aspec, sprintf('%s__descriptives', base_prefix) );
+  end
+end
+
+end

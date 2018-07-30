@@ -1,6 +1,16 @@
 function stats__runall_combs(varargin)
 
 defaults = dsp3.get_behav_stats_defaults();
+defaults.funcs = { ...
+    @stats__percent_correct ...
+  , @stats__pref ...
+  , @stats__rt ...
+  , @stats__gaze ...
+  , @plot_pref_index_over_time ...
+  , @stats__proanti_coh ...
+  , @stats__gamma_beta_ratio ...
+};
+
 defaults.do_save = true;
 
 inputs = dsp3.parsestruct( defaults, varargin );
@@ -9,10 +19,11 @@ conf = inputs.config;
 
 inputs.consolidated = dsp3.get_consolidated_data( conf );
 
-permonks = [true, false];
-permag = [true, false];
+permonks = [false, true];
+permag = [false, true];
 
-rev_types = { 'revA', 'orig', 'full' };
+% rev_types = { 'revA', 'orig', 'full' };
+rev_types = { 'revB' };
 drug_types = { 'drug_wbd', 'nondrug_wbd' };
 
 C = dsp3.numel_combvec( permonks, permag, rev_types, drug_types );
@@ -30,6 +41,8 @@ for i = 1:size(C, 2)
   switch ( revtype )
     case 'revA'
       inputs.remove = dsp3.bad_days_revA();
+    case 'revB'
+      inputs.remove = dsp3.bad_days_revB();
     case 'orig'
       inputs.remove = dsp2.process.format.get_bad_days();
     case 'full'
@@ -44,7 +57,15 @@ for i = 1:size(C, 2)
   inputs.per_monkey = is_permonk;
   inputs.per_magnitude = is_permag;
 
-  stats__runall( inputs );
+  funcs = inputs.funcs;
+
+  for j = 1:numel(funcs)
+    try
+      funcs{j}( inputs );
+    catch err
+      warning( err.message );
+    end
+  end
 
 end
 

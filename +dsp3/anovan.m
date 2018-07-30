@@ -92,6 +92,8 @@ for i = 1:numel(I)
     sig_dims = dim;
   end
   
+  a_tbls{i} = dsp3.anova_cell2table( tbl );
+  
   if ( isempty(sig_dims) )
     continue;
   end
@@ -101,7 +103,6 @@ for i = 1:numel(I)
   issig = c(:, end) < alpha;
   sig_comparisons = cc(issig, :);
   
-  a_tbls{i} = dsp3.anova_cell2table( tbl );
   c_tbls{i} = dsp3.multcompare_cell2table( sig_comparisons );
 end
 

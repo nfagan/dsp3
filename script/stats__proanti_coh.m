@@ -5,9 +5,10 @@ import shared_utils.io.fullfiles;
 defaults = dsp3.get_behav_stats_defaults();
 defaults.do_save = true;
 defaults.remove = {};
-defaults.smooth_func = @(x) smooth(x, 4);
+defaults.smooth_func = @(x) smooth(x, 5);
 defaults.drug_type = 'nondrug';
 defaults.epochs = 'targacq';
+defaults.spectra = true;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -46,6 +47,14 @@ if ( ~dsp3.isdrug(drug_type) ), collapsecat( labels, 'drugs' ); end
 data = indexpair( data, labels, findnone(labels, params.remove) );
 
 %
+% spectra
+%
+
+if ( params.spectra )
+  plot_spectra( data, labels, freqs, t, params );
+end
+
+%
 %
 %
 
@@ -66,6 +75,56 @@ compare_lines( tdata, labels, freqs, params );
 
 [bands, bandnames] = dsp3.get_bands();
 ttests( tdata, labels, freqs, bands, bandnames, params );
+
+end
+
+function plot_spectra( data, labels, freqs, t, params )
+
+prefix = 'proanti_spectra';
+pcats = { 'outcomes', 'drugs', 'administration' };
+
+f_ind = freqs <= 100;
+t_ind = t >= -500 & t <= 500;
+
+pltfreqs = freqs( f_ind );
+labfreqs = round( flip(pltfreqs) );
+
+pl = plotlabeled.make_spectrogram( pltfreqs, t(t_ind) );
+
+axs = pl.imagesc( data, labels, pcats );
+
+shared_utils.plot.fseries_yticks( axs, labfreqs, 5 );
+shared_utils.plot.tseries_xticks( axs, t(t_ind), 5 );
+shared_utils.plot.hold( axs );
+shared_utils.plot.add_vertical_lines( axs, find(t == 0) );
+
+if ( params.do_save )
+  dsp3.req_savefig( gcf, params.plot_p, labels, pcats, prefix )
+end
+
+if ( dsp3.isdrug(params.drug_type) )
+  
+  meanspec = 'outcomes';
+  a = 'oxytocin';
+  b = 'saline';
+  
+  opfunc = @minus;
+  sfunc = @(x) nanmean( x, 1 );
+  
+  [subdat, sublabs] = dsp3.summary_binary_op( data, labels', meanspec, a, b, opfunc, sfunc );
+  setcat( sublabs, 'drugs', sprintf('%s - %s', a, b) );
+  
+  axs = pl.imagesc( subdat, sublabs, pcats );
+
+  shared_utils.plot.fseries_yticks( axs, labfreqs, 5 );
+  shared_utils.plot.tseries_xticks( axs, t(t_ind), 5 );
+  shared_utils.plot.hold( axs );
+  shared_utils.plot.add_vertical_lines( axs, find(t == 0) );
+
+  if ( params.do_save )
+    dsp3.req_savefig( gcf, params.plot_p, sublabs, pcats, prefix )
+  end
+end
 
 end
 

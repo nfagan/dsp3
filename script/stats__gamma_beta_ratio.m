@@ -3,7 +3,7 @@ function stats__gamma_beta_ratio(varargin)
 defaults = dsp3.get_behav_stats_defaults();
 defaults.do_plot = false;
 defaults.meast = 'at_coherence';
-defaults.drugt = 'nondrug';
+defaults.drug_type = 'nondrug';
 defaults.epochs = 'targacq';
 
 params = dsp3.parsestruct( defaults, varargin );
@@ -14,10 +14,14 @@ do_plt = params.do_plot;
 %%
 
 meast = params.meast;
-drugt = params.drugt;
+drugt = params.drug_type;
 epochs = params.epochs;
+per_mag = params.per_magnitude;
+bs = params.base_subdir;
 
-path_components = { 'gamma_beta_ratio', dsp3.datedir, drugt };
+mag_type = ternary( per_mag, 'magnitude', 'non_magnitude' );
+path_components = { 'gamma_beta_ratio', dsp3.datedir, bs, drugt, mag_type };
+
 analysis_p = char( dsp3.analysisp(path_components) );
 
 intermediate_dirs = dsp3.fullfiles( meast, drugt, epochs );
@@ -196,3 +200,5 @@ if ( do_plt )
   axs = pl.bar( rowref(pltdat, mask), pltlabels(mask), 'outcomes', {}, 'trialtypes' );
   set( axs, 'YLim', [0.94, 0.96] );
 end
+
+%%  drug ttests

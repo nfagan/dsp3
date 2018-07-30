@@ -231,6 +231,157 @@ else
   end  
 end
 
+%%  drug plot, overlaying points
+
+if ( is_drug )
+  prefix = 'preference_points';
+  
+  uselabs = preflabs';
+  usedat = prefdat;
+  
+  mask = fcat.mask( uselabs, @find, 'choice' );
+  
+  colors = containers.Map();
+  colors('hitch') = 'r';
+  colors('kuro') = 'b';
+  
+  xcats = 'administration';
+  gcats = { 'monkeys' };
+  pcats = { 'outcomes', 'drugs' };
+  
+  [I, C] = findall( uselabs, pcats, mask );
+  
+  shp = plotlabeled.get_subplot_shape( numel(I) );
+  axs = gobjects( size(I) );  
+  
+  for i = 1:numel(I)
+    
+    ax = subplot( shp(1), shp(2), i );
+    
+    xs = ternary( csisempty(xcats), I(i), findall(uselabs, xcats, I{i}) );
+    gs = ternary( csisempty(gcats), I(i), findall(uselabs, gcats, I{i}) );
+    
+    xcombs = ternary( csisempty(xcats), {sprintf('<x %d>', i)}, combs(uselabs, xcats, I{i}) );
+    gcombs = ternary( csisempty(gcats), {sprintf('<group %d>', i)}, combs(uselabs, gcats, I{i}) );
+    
+    cs = dsp3.numel_combvec( xs, gs );
+    
+    shared_utils.plot.hold( ax );
+    
+    %   points
+    for j = 1:size(cs, 2)
+      xcoord = cs(1, j);
+      gcoord = cs(2, j);
+      
+      xind = xs{xcoord};
+      gind = gs{gcoord};
+      
+      full_inds = intersect( xind, gind );
+      
+      if ( isempty(full_inds) ), continue; end
+      
+      monk = char( columnize(combs(uselabs, 'monkeys', full_inds)) );
+      c_color = dsp3.key_or_default( colors, monk, 'k' );
+      
+      pltdat = usedat(full_inds);
+      
+      plot( repmat(xcoord, size(pltdat)), pltdat, sprintf('%s*', c_color) );      
+    end
+    
+    %   lines
+    
+    hs = {};
+    glabs = {};
+    
+    for j = 1:size(gs)
+      
+      gind = gs{j};
+      
+      for h = 1:numel(xs)-1        
+        xind1 = intersect( gind, xs{h} );
+        xind2 = intersect( gind, xs{h+1} );
+        
+        if ( ~sizesmatch(xind1, xind2) )
+          warning( 'Sizes do not match. Skipping' );
+        end
+        
+        x1 = repmat( h, size(xind1) );
+        x2 = repmat( h+1, size(xind2) );
+        
+        cl = plot( [x1, x2]', [usedat(xind1), usedat(xind2)]' );
+        
+        monk = char( columnize(combs(uselabs, 'monkeys', gind)) );
+        c_color = dsp3.key_or_default( colors, monk, 'k' );
+        
+        set( cl, 'color', c_color );
+        
+        if ( h == 1 )
+          hs{j} = cl(1);
+          glabs{j} = fcat.strjoin( gcombs(:, j), ' | ' );
+        end
+      end
+    end
+    
+    if ( i == 1 )
+      hs = vertcat( hs{:} );
+      glabs = vertcat( glabs{:} );
+
+      legend( hs, glabs );
+    end
+    
+    set( ax, 'xtick', 1:numel(xs) );
+    set( ax, 'xticklabels', fcat.strjoin(xcombs) );
+    
+    shared_utils.plot.set_xlims( ax, [0, numel(xs)+1] );
+    
+    title( ax, strrep(fcat.strjoin(C(:, i), ' | '), '_', ' ') );
+    
+    axs(i) = ax;
+  end
+  
+  shared_utils.plot.match_ylims( axs );
+  
+  if ( do_save )
+    fnames = unique( cshorzcat(xcats, gcats, pcats) );
+    fnames = dsp3.nonun_or_all( uselabs, fnames );
+    
+    dsp3.req_savefig( gcf, plot_p, uselabs(mask), fnames, prefix );
+  end  
+end
+
+%%  drug anova
+
+if ( is_drug )
+  
+  base_prefix = 'drug_anova';
+  
+  uselabs = preflabs';
+  usedat = prefdat;
+  
+  mask = fcat.mask( uselabs, @find, 'choice' );
+  
+  factors = { 'administration', 'drugs' };
+  
+  aspec = cssetdiff( spec, csunion(factors, 'days') );
+  
+  outs = dsp3.anovan( usedat, uselabs', aspec, factors, 'mask', mask );
+  
+  if ( do_save )
+    a_tbls = outs.anova_tables;
+    a_labs = outs.anova_labels;
+    m_tbls = outs.descriptive_tables;
+    m_labs = outs.descriptive_labels;
+    c_tbls = outs.comparison_tables;
+    
+    for i = 1:numel(a_tbls)
+      dsp3.savetbl( a_tbls{i}, analysis_p, a_labs(i), aspec, sprintf('%s__anova_tables', base_prefix) );
+      dsp3.savetbl( c_tbls{i}, analysis_p, a_labs(i), aspec, sprintf('%s__anova_comparisons', base_prefix) );
+    end
+    
+    dsp3.savetbl( m_tbls, analysis_p, m_labs, aspec, sprintf('%s__descriptives', base_prefix) );
+  end
+end
+
 end
 
 

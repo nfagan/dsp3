@@ -11,6 +11,7 @@ d.drug_type = 'nondrug';
 d.base_subdir = '';
 d.do_save = false;
 d.alpha = 0.05;
+d.funcs = {};
 
 if ( nargin > 0 )
   d = dsp3.parsestruct( d, varargin );

@@ -2,28 +2,25 @@ function stats__runall(varargin)
 
 defaults = dsp3.get_behav_stats_defaults();
 
+defaults.funcs = { ...
+    @stats__percent_correct ...
+  , @stats__rt ...
+  , @stats__gaze ...
+  , @stats__pref ...
+  , @plot_pref_index_over_time ...
+  , @stats__proanti_coh ...
+};
+
 params = dsp3.parsestruct( defaults, varargin );
 
-%%  p correct
+funcs = params.funcs;
 
-stats__percent_correct( params );
+for i = 1:numel(funcs)
+  try
+    funcs{i}( params );
+  catch err
+    warning( err.message );
+  end
+end
 
-%%  rt
-
-stats__rt( params );
-
-%%  gaze
-
-stats__gaze( params );
-
-%%  preference
-
-stats__pref( params );
-
-%%  pref over time
-
-plot_pref_index_over_time( params );
-
-%%  coh
-
-stats__proanti_coh( params );
+end
