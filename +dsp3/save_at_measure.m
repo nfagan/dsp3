@@ -25,6 +25,7 @@ parfor i = 1:numel(mats)
   un_filename = shared_utils.char.require_end( meas_file.unified_filename, '.mat' );
   
   output_filename = fullfile( output_p, un_filename );
+  output_filename = char( output_filename );
   
   if ( dsp3.conditional_skip_file(output_filename, params.overwrite) )
     continue;
