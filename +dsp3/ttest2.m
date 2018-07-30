@@ -36,6 +36,8 @@ function outs = ttest2(data, labels, spec, a, b, varargin)
 %         statistics of `data`. Default is NaN, in which case the
 %         additional categories are chosen automatically based on the
 %         categories of `a` and `b`.
+%       - 'allow_missing_labels' (logical) -- If false (default) all labels 
+%         in `a` and `b` must be present in the object `labels`.
 %
 %     IN:
 %       - `data` (double)
@@ -50,6 +52,7 @@ defaults.mask = rowmask( data );
 defaults.descriptive_funcs = dsp3.descriptive_funcs();
 defaults.test_category = NaN;
 defaults.ttest2_inputs = {};
+defaults.allow_missing_labels = false;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -63,6 +66,10 @@ if ( iscell(spec) && isempty(spec) )
   I = { mask };
 else
   [tlabs, I] = keepeach( labels', spec, mask );
+end
+
+if ( ~params.allow_missing_labels )
+  assert_haslab( labels, csunion(a, b) );
 end
 
 t_tbls = cell( size(I) );

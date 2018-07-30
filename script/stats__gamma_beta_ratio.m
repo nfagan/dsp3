@@ -38,6 +38,8 @@ basespec = { 'measure', 'epochs' };
 
 dsp3.add_context_labels( labels );
 
+data = indexpair( data, labels, findnone(labels, params.remove) );
+
 %%
 
 t_ind = t >= -250 & t <= 0;
@@ -202,3 +204,61 @@ if ( do_plt )
 end
 
 %%  drug ttests
+
+if ( dsp3.isdrug(drugt) )
+  
+  base_prefix = 'drug_ttest';
+  
+  usedat = ratio;
+  uselabs = bandlabs';
+  
+  sub_a = 'post';
+  sub_b = 'pre';
+  
+  %   full spec
+  drug_subspec = csunion( basespec, {'trialtypes', 'channels', 'regions' ...
+    , 'sites', 'days', 'drugs', 'bands', 'outcomes'} );
+  %   except sites & drugs
+  t_spec = cssetdiff( drug_subspec, {'channels', 'regions', 'sites', 'days', 'drugs'} );
+  %   except outcomes
+  pro_subspec = cssetdiff( drug_subspec, 'outcomes' );
+  
+  pairs = { {'self', 'both'}, {'other', 'none'} };
+  
+  mask = fcat.mask( uselabs, @find, 'choice' );
+  
+  opfunc = @minus;
+  sfunc = @nanmean;
+  
+  [subdat, sublabs] = dsp3.summary_binary_op( usedat, uselabs', drug_subspec, sub_a, sub_b, opfunc, sfunc, mask );
+  
+  dat = [];
+  labs = fcat();
+  
+  for i = 1:numel(pairs)
+    a = pairs{i}{1};
+    b = pairs{i}{2};
+    
+    [outdat, outlabs] = dsp3.summary_binary_op( subdat, sublabs', pro_subspec, a, b, opfunc, sfunc );
+    setcat( outlabs, 'outcomes', sprintf('%s - %s', a, b) );
+    
+    dat = [ dat; outdat ];
+    append( labs, outlabs );
+  end
+  
+  outs = dsp3.ttest2( dat, labs', t_spec, 'saline', 'oxytocin' );
+  
+  if ( do_save )
+    m_tbls = outs.descriptive_tables;
+    m_labs = outs.descriptive_labels;
+    t_tbls = outs.t_tables;
+    t_labs = outs.t_labels;
+    
+    dsp3.savetbl( m_tbls, analysis_p, m_labs, tspec, sprintf('%s__descriptives', base_prefix) );
+
+    for i = 1:numel(t_tbls)
+      dsp3.savetbl( t_tbls{i}, analysis_p, t_labs(i), tspec, sprintf('%s__t_tables', base_prefix) );
+    end
+  end
+  
+end
