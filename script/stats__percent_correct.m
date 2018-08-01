@@ -173,6 +173,32 @@ if ( do_save )
   shared_utils.plot.save_fig( gcf, fullfile(plot_p, fname), {'epsc', 'png', 'fig'}, true );
 end
 
+%%  plot p correct
+
+if ( dsp3.isdrug(drug_type) )
+  prefix = 'pcorrect_good_trials';
+  % prefix = 'pcorrect';
+  
+  pltdat = pcorr;
+  pltlabs = errlabs';
+  
+  mask = fcat.mask( pltlabs, @findnone, 'errors', @find, 'choice' );
+
+  pl = plotlabeled.make_common();
+  pl.group_order = { 'pre', 'post' };
+  
+  xcats = { 'drugs' };
+  gcats = { 'administration' };
+  pcats = { 'contexts', 'trialtypes' };
+
+  axs = pl.bar( pltdat(mask), pltlabs(mask), xcats, gcats, pcats );
+
+  if ( do_save )
+    dsp3.req_savefig( gcf, plot_p, pltlabs, unique(cshorzcat(xcats, gcats, pcats)), prefix );
+  end
+  
+end
+
 %%  table -- percent correct
 
 prefix = 'pcorrect_descriptives__';
@@ -436,6 +462,8 @@ if ( dsp3.isdrug(drug_type) )
     
   [subdat, sublabs] = dsp3.summary_binary_op( usedat, uselabs', subspec, sub_a, sub_b, opfunc, sfunc );
   
+  setcat( sublabs, 'administration', sprintf('%s - %s', sub_a, sub_b) );
+  
   outs = dsp3.ttest2( subdat, sublabs', tspec, a, b );
   
   if ( do_save )
@@ -452,3 +480,29 @@ if ( dsp3.isdrug(drug_type) )
   end
 end
 
+%%  pl
+  
+if ( dsp3.isdrug(drug_type) )
+  
+  prefix = 'pcorrect_post_minus_pre';
+  % prefix = 'pcorrect';
+  
+  pltdat = subdat;
+  pltlabs = sublabs';
+  
+  mask = fcat.mask( pltlabs, @findnone, 'errors', @find, 'choice' );
+
+  pl = plotlabeled.make_common();
+  pl.x_tick_rotation = 0;
+  
+  xcats = { 'drugs' };
+  gcats = { 'administration' };
+  pcats = { 'contexts', 'trialtypes' };
+
+  axs = pl.bar( pltdat(mask), pltlabs(mask), xcats, gcats, pcats );
+
+  if ( do_save )
+    dsp3.req_savefig( gcf, plot_p, pltlabs, unique(cshorzcat(xcats, gcats, pcats)), prefix );
+  end
+
+end

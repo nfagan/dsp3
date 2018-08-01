@@ -19,12 +19,12 @@ conf = inputs.config;
 
 inputs.consolidated = dsp3.get_consolidated_data( conf );
 
-permonks = [false, true];
-permag = [false, true];
+permonks = [true, false];
+permag = false;
 
 % rev_types = { 'revA', 'orig', 'full' };
-rev_types = { 'revB' };
-drug_types = { 'drug_wbd', 'nondrug_wbd' };
+rev_types = { 'revB', 'revA', 'orig', 'full' };
+drug_types = { 'drug_wbd' };
 
 C = dsp3.numel_combvec( permonks, permag, rev_types, drug_types );
 
@@ -57,7 +57,7 @@ for i = 1:size(C, 2)
   inputs.per_monkey = is_permonk;
   inputs.per_magnitude = is_permag;
 
-  funcs = inputs.funcs;
+  funcs = reqcell( inputs.funcs );
 
   for j = 1:numel(funcs)
     try

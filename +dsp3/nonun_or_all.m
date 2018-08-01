@@ -24,7 +24,7 @@ function c = nonun_or_all(labs, cats, always)
 c = cssetdiff( cats, getcats(labs, 'un') );
 
 if ( isempty(c) )
-  c = cats; 
+  c = cellstr( cats );
 end
 
 if ( nargin > 2 )

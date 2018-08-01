@@ -9,6 +9,7 @@ d.per_magnitude = false;
 d.per_monkey = false;
 d.drug_type = 'nondrug';
 d.base_subdir = '';
+d.base_prefix = '';
 d.do_save = false;
 d.alpha = 0.05;
 d.funcs = {};

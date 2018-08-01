@@ -230,7 +230,7 @@ if ( dsp3.isdrug(drugt) )
   opfunc = @minus;
   sfunc = @nanmean;
   
-  [subdat, sublabs] = dsp3.summary_binary_op( usedat, uselabs', drug_subspec, sub_a, sub_b, opfunc, sfunc, mask );
+  [subdat, sublabs] = dsp3.sbop( usedat, uselabs', drug_subspec, sub_a, sub_b, opfunc, sfunc, mask );
   
   dat = [];
   labs = fcat();
@@ -239,7 +239,7 @@ if ( dsp3.isdrug(drugt) )
     a = pairs{i}{1};
     b = pairs{i}{2};
     
-    [outdat, outlabs] = dsp3.summary_binary_op( subdat, sublabs', pro_subspec, a, b, opfunc, sfunc );
+    [outdat, outlabs] = dsp3.sbop( subdat, sublabs', pro_subspec, a, b, opfunc, sfunc );
     setcat( outlabs, 'outcomes', sprintf('%s - %s', a, b) );
     
     dat = [ dat; outdat ];

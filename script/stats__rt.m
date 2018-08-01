@@ -221,6 +221,8 @@ if ( dsp3.isdrug(drug_type) )
   [subdat, sublabs] = dsp3.summary_binary_op( usedat, uselabs', subspec ...
     , sub_a, sub_b, opfunc, sfunc, mask );
   
+  setcat( sublabs, 'administration', sprintf('%s - %s', sub_a, sub_b) );
+  
   outs = dsp3.anovan( subdat, sublabs', aspec, factors );
   
   if ( do_save )
@@ -237,6 +239,33 @@ if ( dsp3.isdrug(drug_type) )
     
     dsp3.savetbl( m_tbls, analysis_p, m_labs, aspec, sprintf('%s__descriptives', base_prefix) );
   end
+end
+
+%%  plot drug
+
+if ( dsp3.isdrug(drug_type) )
+  
+  pltdat = subdat;
+  pltlabs = sublabs';
+  
+  prefix = 'rt_post_minus_pre';
+  
+  mask = fcat.mask( pltlabs, @findnone, 'errors', @find, 'choice' );
+
+  pl = plotlabeled.make_common();
+  pl.x_tick_rotation = 0;
+  pl.x_order = { 'self', 'both', 'other', 'none' };
+  
+  xcats = { 'outcomes' };
+  gcats = { 'drugs' };
+  pcats = { 'trialtypes', 'administration' };
+
+  axs = pl.bar( pltdat(mask), pltlabs(mask), xcats, gcats, pcats );
+
+  if ( do_save )
+    dsp3.req_savefig( gcf, plot_p, pltlabs, unique(cshorzcat(xcats, gcats, pcats)), prefix );
+  end 
+  
 end
 
 end

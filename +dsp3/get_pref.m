@@ -1,4 +1,4 @@
-function [prefdat, preflabs] = get_pref(preflabs, spec)
+function [prefdat, preflabs] = get_pref(preflabs, spec, varargin)
 
 if ( nargin < 2 )
   spec = { 'days', 'trialtypes', 'administration' };
@@ -10,8 +10,8 @@ sfunc = @sum;
 
 shared = { prefdat, preflabs, spec };
 
-[sbdat, sblabs] = dsp3.summary_binary_op( shared{:}, 'both', 'self', opfunc, sfunc );
-[ondat, onlabs] = dsp3.summary_binary_op( shared{:}, 'other', 'none', opfunc, sfunc );
+[sbdat, sblabs] = dsp3.sbop( shared{:}, 'both', 'self', opfunc, sfunc, varargin{:} );
+[ondat, onlabs] = dsp3.sbop( shared{:}, 'other', 'none', opfunc, sfunc, varargin{:} );
 
 setcat( sblabs, 'outcomes', 'selfMinusBoth' );
 setcat( onlabs, 'outcomes', 'otherMinusNone' );

@@ -6,6 +6,7 @@ params = dsp3.parsestruct( defaults, varargin );
 drug_type = params.drug_type;
 do_save = params.do_save;
 bs = params.base_subdir;
+base_prefix = params.base_prefix;
 conf = params.config;
 
 path_components = { 'behavior', dsp3.datedir, bs, drug_type, 'gaze' };
@@ -19,6 +20,7 @@ end
 labs = fcat.from( consolidated.trial_data.labels );
 
 analysis_p = char( dsp3.analysisp(path_components, conf) );
+plot_p = char( dsp3.plotp(path_components, conf) );
 
 %%
 
@@ -369,6 +371,40 @@ if ( do_save )
   end
 end
 
+
+%%  drug plot
+
+if ( dsp3.isdrug(drug_type) )
+  
+  prefix = sprintf( '%spost_minus_pre_gaze', base_prefix );
+  
+  usedat = countdat;
+  uselabs = countlabs';
+  
+  mask = fcat.mask( uselabs, @findnone, 'errors', @find, 'choice' );
+  
+  a = 'post';
+  b = 'pre';
+  
+  subspec = setdiff( spec, 'administration' );
+  [subdat, sublabs] = dsp3.sbop( usedat, uselabs', subspec, a, b, @minus, @nanmean, mask );
+  
+  setcat( sublabs, 'administration', 'post - pre' );
+  
+  xcats = { 'outcomes' };
+  gcats = { 'drugs' };
+  pcats = dsp3.nonun_or_all( sublabs, {'looks_to', 'trialtypes'}, 'administration' );
+  
+  pl = plotlabeled.make_common();
+  pl.x_order = dsp3.outcome_order();
+  
+  axs = pl.errorbar( subdat, sublabs, xcats, gcats, pcats );  
+  
+  if ( do_save )
+    fnames = unique( cshorzcat(xcats, gcats, pcats) );
+    dsp3.req_savefig( gcf, plot_p, sublabs, fnames, prefix );
+  end
+end
 
 
 %%  plot per mag

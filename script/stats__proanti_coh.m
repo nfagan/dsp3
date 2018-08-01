@@ -80,18 +80,18 @@ end
 
 function plot_spectra( data, labels, freqs, t, params )
 
-prefix = 'proanti_spectra';
+prefix = sprintf( '%sproanti_spectra', params.base_prefix );
 pcats = { 'outcomes', 'drugs', 'administration' };
 
 f_ind = freqs <= 100;
-t_ind = t >= -500 & t <= 500;
+t_ind = t >= -350 & t <= 300;
 
 pltfreqs = freqs( f_ind );
 labfreqs = round( flip(pltfreqs) );
 
 pl = plotlabeled.make_spectrogram( pltfreqs, t(t_ind) );
 
-axs = pl.imagesc( data, labels, pcats );
+axs = pl.imagesc( data(:, f_ind, t_ind), labels, pcats );
 
 shared_utils.plot.fseries_yticks( axs, labfreqs, 5 );
 shared_utils.plot.tseries_xticks( axs, t(t_ind), 5 );
@@ -114,7 +114,7 @@ if ( dsp3.isdrug(params.drug_type) )
   [subdat, sublabs] = dsp3.summary_binary_op( data, labels', meanspec, a, b, opfunc, sfunc );
   setcat( sublabs, 'drugs', sprintf('%s - %s', a, b) );
   
-  axs = pl.imagesc( subdat, sublabs, pcats );
+  axs = pl.imagesc( subdat(:, f_ind, t_ind), sublabs, pcats );
 
   shared_utils.plot.fseries_yticks( axs, labfreqs, 5 );
   shared_utils.plot.tseries_xticks( axs, t(t_ind), 5 );
@@ -295,7 +295,7 @@ for i = 1:numel(axs)
 end
 
 if ( params.do_save )
-  prefix = 'pro_anti_coh';
+  prefix = sprintf( '%spro_anti_coh', params.base_prefix );
   shared_utils.io.require_dir( params.plot_p );
   
   fname = dsp3.fname( newlabs, dsp3.nonun_or_other(newlabs, pcats) );

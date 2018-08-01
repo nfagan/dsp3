@@ -52,7 +52,7 @@ assert_hascat( labels, csunion(spec, factors) );
 defaults.mask = rowmask( data );
 defaults.comparison_category = 'comparison';
 defaults.alpha = 0.05;
-defaults.descriptive_funcs = { @mean, @median, @rows, @plotlabeled.sem };
+defaults.descriptive_funcs = dsp3.descriptive_funcs();
 defaults.anovan_inputs = { 'display', 'off', 'varnames', factors, 'model', 'full' };
 defaults.dimension = 'auto';
 
@@ -68,12 +68,7 @@ dim = params.dimension;
 
 addcat( labels, compcat );
 
-if ( iscell(spec) && isempty(spec) )
-  alabs = one( labels' );
-  I = { mask };
-else
-  [alabs, I] = keepeach( labels', spec, mask );
-end
+[alabs, I] = dsp3.keepeach_or_one( labels', spec, mask );
 
 c_tbls = cell( size(I) );
 a_tbls = cell( size(I) );

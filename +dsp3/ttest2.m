@@ -61,12 +61,7 @@ funcs = params.descriptive_funcs;
 testcat = params.test_category;
 ttest2_inputs = params.ttest2_inputs;
 
-if ( iscell(spec) && isempty(spec) )
-  tlabs = one( labels' );
-  I = { mask };
-else
-  [tlabs, I] = keepeach( labels', spec, mask );
-end
+[tlabs, I] = dsp3.keepeach_or_one( labels', spec, mask );
 
 if ( ~params.allow_missing_labels )
   assert_haslab( labels, csunion(a, b) );

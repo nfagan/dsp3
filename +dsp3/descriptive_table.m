@@ -56,8 +56,7 @@ end
 assert( numel(funcs) > 0, 'Specify at least one function.' );
 
 [~, desc] = dsp3.make_new_cat( labels, 'descriptives' );
-
-[labels, I] = keepeach( labels, spec, varargin{:} );
+[labels, I] = dsp3.keepeach_or_one( labels, spec, varargin{:} );
 
 vals = cell( size(funcs) );
 names = cellfun( @(x) cleanfunc(func2str(x)), funcs, 'un', 0 );
@@ -67,7 +66,7 @@ for i = 1:numel(funcs)
 end
 
 addcat( labels, desc );
-[t, rc] = tabular( labels, dsp3.nonun_or_other(labels, spec), desc );
+[t, rc] = tabular( labels, dsp3.nonun_or_all(labels, spec), desc );
 
 repset( rc{2}, desc, names );
 

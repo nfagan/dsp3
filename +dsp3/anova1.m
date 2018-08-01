@@ -48,7 +48,7 @@ assert_hascat( labels, csunion(spec, factor) );
 defaults.mask = rowmask( data );
 defaults.comparison_category = 'comparison';
 defaults.alpha = 0.05;
-defaults.descriptive_funcs = { @mean, @median, @rows, @plotlabeled.sem };
+defaults.descriptive_funcs = dsp3.descriptive_funcs();
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -59,12 +59,7 @@ funcs = params.descriptive_funcs;
 
 addcat( labels, compcat );
 
-if ( iscell(spec) && isempty(spec) )
-  alabs = one( labels' );
-  I = { mask };
-else
-  [alabs, I] = keepeach( labels', spec, mask );
-end
+[alabs, I] = dsp3.keepeach_or_one( labels', spec, mask );
 
 c_tbls = cell( size(I) );
 a_tbls = cell( size(I) );
