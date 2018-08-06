@@ -19,7 +19,7 @@ conf = inputs.config;
 
 inputs.consolidated = dsp3.get_consolidated_data( conf );
 
-permonks = [true, false];
+permonks = [true];
 permag = false;
 
 % rev_types = { 'revA', 'orig', 'full' };

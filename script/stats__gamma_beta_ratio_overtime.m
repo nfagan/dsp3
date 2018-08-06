@@ -101,7 +101,7 @@ mask = fcat.mask( pltlabs, @findnone, {'errors', 'cued'} );
 
 xcats = { 'blocks' };
 gcats = { 'drugs' };
-pcats = dsp3.nonun_or_all( pltlabs, {'outcomes', 'trialtypes'} );
+pcats = dsp3.nonun_or_all( pltlabs, {'outcomes', 'trialtypes', 'monkeys'} );
 
 pl = plotlabeled.make_common();
 pl.panel_order = dsp3.outcome_order();
@@ -170,9 +170,10 @@ for i = 1:numel(I)
     
     slopes(stp) = p(1);
     stp = stp + 1;
-    append1( slopelabs, permlabs, I{i} );
     shuf_slopes(j) = p(1);
   end 
+  
+  append1( slopelabs, permlabs, I{i}, iters );
   
   %   real val
   realp = polyfit( vals, matched_ns, 1 );
@@ -198,7 +199,6 @@ for i = 1:numel(I)
 end
 
 toc;
-
 %%
 tblspec = dsp3.nonun_or_all( testlabs, permspec );
 [t, rc] = tabular( testlabs, tblspec );

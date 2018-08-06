@@ -18,7 +18,7 @@ end
 inds = inds(I);
 fnames = fnames(I);
 
-ranges = cellfun( @(x) x(1):x(2), inds, 'un', false );
+ranges = cellfun( @(x) x(1):x(2), inds, 'un', 0 );
 ranges = horzcat( ranges{:} );
 
 assert( issorted(ranges) && all(diff(ranges) == 1) );
@@ -33,10 +33,17 @@ end
 
 all_data = zeros( size(files{1}.data) );
 
+all_freqs = files{1}.frequencies;
+ok_freqs = false( size(all_freqs) );
+
 for i = 1:numel(files)
   crange = inds{i}(1):inds{i}(2);
   all_data(:, crange, :, :) = files{i}.data(:, crange, :, :);
+  ok_freqs(crange) = true;
 end
+
+all_data = dimref( all_data, ok_freqs, 2 );
+files{1}.frequencies = all_freqs(ok_freqs);
 
 out = set_data( files{1}, all_data );
 

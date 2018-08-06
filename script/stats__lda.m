@@ -159,7 +159,6 @@ markersize = 8;
 
 % add stars
 for i = 1:numel(axs)
-  
   ax = axs(i);
   lims = get( ax, 'ylim' );
   
@@ -171,7 +170,6 @@ for i = 1:numel(axs)
       plot( ax, freqs(inds(k)), lims(2), colorspec, 'markersize', markersize );
     end
   end
-  
 end
 
 if ( do_save )
@@ -194,7 +192,8 @@ switch ( spec )
   case 'days'
     date_dir = '061118';
   case 'sites'
-    date_dir = '072418';
+    date_dir = '072618';
+%     date_dir = '072418';
   otherwise
     error( 'Unrecognized specificty "%s".', spec );
 end

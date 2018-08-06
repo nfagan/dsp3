@@ -19,17 +19,19 @@ thresholded = dsp2.analysis.granger.granger_sd_threshold( kept, sd_threshold );
 %%
 
 
-permonks = [false];
+permonks = [false, true];
 proantis = [true];
 use_threshold = [true, false];
+pro_minus_antis = [true];
 
-c = dsp3.ncombvec( numel(permonks), numel(proantis), numel(use_threshold) );
+c = dsp3.numel_combvec( permonks, proantis, use_threshold, pro_minus_antis );
 
 for i = 1:size(c, 2)
   
   is_permonk = permonks( c(1, i) );
   is_proanti = proantis( c(2, i) );
   use_thresh = use_threshold( c(3, i) );
+  is_pro_minus_anti = pro_minus_antis( c(4, i) );
   
   plt = ternary( use_thresh, thresholded, kept );
   base_prefix = ternary( use_thresh, 'thresholded', 'non_thresholded' );
@@ -37,12 +39,13 @@ for i = 1:size(c, 2)
 
   plot_null_granger( plt ...
     , 'config',     conf ...
-    , 'lims',       [-0.04, 0.04] ...
+    , 'lims',       [-0.06, 0.06] ...
     , 'base_subdir', base_subdir ...
     , 'base_prefix', base_prefix ...
     , 'drug_type',  drug_type ...
     , 'is_permonk', is_permonk ...
     , 'is_proanti', is_proanti ...
+    , 'is_pro_minus_anti', is_pro_minus_anti ...
   );
 
 end

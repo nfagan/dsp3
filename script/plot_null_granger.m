@@ -3,6 +3,7 @@ function plot_null_granger(kept, varargin)
 defaults.drug_type = 'nondrug';
 defaults.save_figs = true;
 defaults.is_proanti = true;
+defaults.is_pro_minus_anti = false;
 defaults.is_permonk = false;
 defaults.base_subdir = '';
 defaults.base_prefix = '';
@@ -22,6 +23,7 @@ save_figs = params.save_figs;
 is_drug = strcmpi( drug_type, 'drug' );
 is_proanti = params.is_proanti;
 is_permonk = params.is_permonk;
+is_pro_minus_anti = params.is_pro_minus_anti;
 
 base_prefix = sprintf( '%s%s', params.drug_type, params.base_prefix );
 
@@ -43,6 +45,10 @@ end
 
 if ( is_drug )
   kept = dsp2.process.manipulations.post_minus_pre( kept );
+end
+
+if ( is_pro_minus_anti )
+  kept = dsp2.process.manipulations.pro_minus_anti( kept );
 end
 
 if ( ~is_permonk )
