@@ -21,7 +21,7 @@ fnames = fnames(I);
 ranges = cellfun( @(x) x(1):x(2), inds, 'un', 0 );
 ranges = horzcat( ranges{:} );
 
-assert( issorted(ranges) && all(diff(ranges) == 1) );
+assert( issorted(ranges) );
 
 full_fnames = percell( @(x) fullfile(lda_dir, x), fnames );
 files = cell( size(full_fnames) );

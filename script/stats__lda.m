@@ -59,7 +59,7 @@ for i = 1:niters
   stp = stp + nrows;
 end
 
-I = findall( newlabs, {'days', 'channels'} );
+I = findall( newlabs, {'days', 'channels', 'regions'} );
 
 for i = 1:numel(I)
   shared_utils.general.progress( i, numel(I), mfilename );
