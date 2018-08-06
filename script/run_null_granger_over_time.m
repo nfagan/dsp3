@@ -4,6 +4,8 @@ defaults = struct();
 defaults.date_dir = dsp2.process.format.get_date_dir();
 defaults.days_stop = [];
 defaults.days_start = 1;
+defaults.granger_window_size = 200;
+defaults.granger_step_size = 50;
 
 run_params = dsp2.util.general.parsestruct( defaults, varargin );
 
@@ -45,10 +47,10 @@ end
 dsp2.util.general.require_dir( save_path );
 %   determine which files have already been processed
 granger_fname = 'granger_segment_';
-current_files = dsp2.util.general.dirnames( save_path, '.mat' );
-current_days = cellfun( @(x) x(numel(granger_fname)+1:end-4), current_files, 'un', false );
+% current_files = dsp2.util.general.dirnames( save_path, '.mat' );
+% current_days = cellfun( @(x) x(numel(granger_fname)+1:end-4), current_files, 'un', false );
 all_days = io.get_days( P );
-all_days = setdiff( all_days, current_days );
+% all_days = setdiff( all_days, current_days );
 
 if ( isempty(days_stop) )
   days_stop = numel( all_days );
@@ -66,8 +68,6 @@ end
 
 [~, date_sorted] = sort( datenum(cellfun( @(x) x(numel('day__')+1:end), all_days, 'un', 0 ), 'mmddyyyy') );
 all_days = all_days(date_sorted);
-
-% all_days = { 'day__05232017' };
 
 %% -- Main routine, for each group of days
 
@@ -117,25 +117,65 @@ for ii = 1:numel(all_days)
   params.estimate_model_order = false;
   params.fs_divisor = 2;
   params.is_drug = IS_DRUG;
-  params.kept_350 = KEPT_FIRST_350;
+  params.kept_350 = KEEP_FIRST_350;
   params.is_replication = IS_REPLICATION;
-  params.time = ''
+  
+  matrix_t = dsp2.process.format.get_matrix_t( signals_ ) + signals_.window_size/2;
+  max_t = max( matrix_t );
+  
+  time_roi_starts = matrix_t(1):run_params.granger_step_size:matrix_t(end);
+  time_roi_ends = time_roi_starts + run_params.granger_window_size;
+  
+  within_bounds = time_roi_starts < max_t & time_roi_ends < max_t;
+  
+  time_roi_starts = time_roi_starts(within_bounds);
+  time_roi_ends = time_roi_ends(within_bounds);
   
   signals_ = signals_.require_fields( {'context', 'iteration'} );
   signals_( 'context', signals_.where({'self', 'both'}) ) = 'context__selfboth';
   signals_( 'context', signals_.where({'other', 'none'}) ) = 'context__othernone';
   
-  for i = 1:numel(time_rois)
+  all_rois = Container();
+  all_params = Container();
+  all_times = Container();
+  
+  for i = 1:numel(time_roi_starts)
+    fprintf( '\n Time roi %d of %d', i, numel(time_roi_starts) );
+    
+    start_ind = find( matrix_t == time_roi_starts(i) );
+    end_ind = find( matrix_t == time_roi_ends(i) );
+    
+    assert( numel(start_ind) == 1 && numel(end_ind) == 1, 'No time matches "%d, %d"' ...
+      , time_roi_starts(i), time_roi_ends(i) );
     
     time_roi_signals = signals_;
-    time_roi_signals.data = time_roi_signals.data(:, time_rois{i});
+    time_roi_signals.data = time_roi_signals.data(:, start_ind:end_ind);
     
     detrend_func = @dsp2.process.reference.detrend_data;
 
     time_roi_signals = time_roi_signals.for_each_nd( {'channels', 'days'}, detrend_func );
     
     one_roi = run_one_granger( time_roi_signals, params );
+    
+    one_labs = one( time_roi_signals.labels );
+    one_params = Container( params, one_labs );
+    one_time = Container( [time_roi_starts(i), time_roi_ends(i)], one_labs );
+    
+    all_rois = append( all_rois, one_roi );
+    all_params = append( all_params, one_params );
+    all_times = append( all_times, one_time );
   end
+  
+  c_days = all_days{ii};
+  
+  if ( iscell(c_days) ), c_days = strjoin( c_days, '_' ); end
+  
+  max_length = 100;
+  day_str = c_days(1:min(numel(c_days), max_length));
+  
+  fname = sprintf( [granger_fname, '%s.mat'], day_str );
+
+  save( fullfile(save_path, fname), 'all_rois', 'all_params', 'all_times', '-v7.3' );
 
 end
 
@@ -158,8 +198,6 @@ shuffle_within = { 'context', 'trialtypes', 'drugs', 'administration' };
 all_data = Container();
 
 for i = 1:numel(days)
-
-  tmp_write( {'Processing %s (%d of %d)\n', days{i}, i, numel(days)}, tmp_fname );
 
   one_day = signals_.only( days{i} );
   cmbs = one_day.pcombs( shuffle_within );
@@ -207,7 +245,7 @@ for i = 1:numel(days)
       conts{j} = extend( iters{:} );
     end
   catch err
-    tmp_write( {'Error on %s\n:%s\n', days{i}, err.message}, tmp_fname );
+    warning( err.message );
     continue;
   end
 
