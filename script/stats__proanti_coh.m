@@ -9,6 +9,7 @@ defaults.smooth_func = @(x) smooth(x, 5);
 defaults.drug_type = 'nondrug';
 defaults.epochs = 'targacq';
 defaults.spectra = true;
+defaults.is_z = false;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -18,12 +19,25 @@ epochs =      params.epochs;
 drug_type =   params.drug_type;
 bs =          params.base_subdir;
 manips =      'pro_v_anti';
-meas_types =  'z_scored_coherence';
+is_z =        params.is_z;
 
-p = fullfiles( conf.PATHS.dsp2_analyses, meas_types, epochs, drug_type, manips );
-p = p( cellfun(@shared_utils.io.dexists, p) );
+meas_types = ternary( is_z, 'z_scored_coherence', 'at_coherence' );
+z_type = ternary( is_z, 'z', 'nonz' );
+load_inputs = {};
 
-components = { 'spectra', dsp3.datedir(), bs, drug_type };
+if ( is_z )
+  p = fullfiles( conf.PATHS.dsp2_analyses, meas_types, epochs, drug_type, manips );
+  p = p( cellfun(@shared_utils.io.dexists, p) );
+else
+  p = dsp3.get_intermediate_dir( fullfiles(meas_types, drug_type, epochs), conf );
+  load_inputs = horzcat( load_inputs, {'get_meas_func', @(meas) meas.measure} );
+end
+
+dayspec = { 'administration', 'days', 'trialtypes', 'outcomes' };
+blockspec = csunion( dayspec, {'blocks', 'sessions'} );
+sitespec = csunion( blockspec, {'channels', 'regions', 'sites'} );
+
+components = { 'spectra', dsp3.datedir(), bs, drug_type, z_type };
 
 plot_p = char( dsp3.plotp(components, conf) );
 analysis_p = char( dsp3.analysisp(components, conf) );
@@ -37,7 +51,12 @@ mats = shared_utils.io.find( p, '.mat' );
 %
 %
 
-[data, labels, freqs, t] = dsp3.load_signal_measure( mats );
+[data, labels, freqs, t] = dsp3.load_signal_measure( mats, load_inputs{:} );
+
+%   pro v. anti if necessary
+if ( haslab(prune(labels), 'self') )
+  [data, labels] = dsp3.pro_v_anti( data, labels, cssetdiff(sitespec, 'outcomes') );  
+end
 
 replace( labels, 'selfMinusBoth', 'anti' );
 replace( labels, 'otherMinusNone', 'pro' );

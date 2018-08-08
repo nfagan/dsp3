@@ -3,7 +3,7 @@ function stats__lda(varargin)
 import shared_utils.cell.percell;
 
 defaults = dsp3.get_behav_stats_defaults();
-defaults.specificity = 'contexts';
+defaults.specificity = 'sites';
 defaults.smooth_func = @(x) smooth( x, 5 );
 params = dsp3.parsestruct( defaults, varargin );
 
