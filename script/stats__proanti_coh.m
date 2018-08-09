@@ -9,7 +9,9 @@ defaults.smooth_func = @(x) smooth(x, 5);
 defaults.drug_type = 'nondrug';
 defaults.epochs = 'targacq';
 defaults.spectra = true;
-defaults.is_z = false;
+defaults.is_z = true;
+defaults.is_pro_minus_anti = true;
+defaults.specificity = 'blocks';
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -35,9 +37,18 @@ end
 
 dayspec = { 'administration', 'days', 'trialtypes', 'outcomes' };
 blockspec = csunion( dayspec, {'blocks', 'sessions'} );
-sitespec = csunion( blockspec, {'channels', 'regions', 'sites'} );
 
-components = { 'spectra', dsp3.datedir(), bs, drug_type, z_type };
+spec_type = params.specificity;
+
+if ( strcmp(params.specificity, 'blocks') )
+  sitespec = csunion( blockspec, {'channels', 'regions', 'sites'} );
+elseif ( strcmp(params.specificity, 'days') )
+  sitespec = csunion( dayspec, {'channels', 'regions', 'sites'} );
+else
+  error( 'Unrecognized specificity "%s".', params.specificity );
+end
+
+components = { 'spectra', dsp3.datedir(), bs, drug_type, z_type, spec_type };
 
 plot_p = char( dsp3.plotp(components, conf) );
 analysis_p = char( dsp3.analysisp(components, conf) );
@@ -60,6 +71,10 @@ end
 
 replace( labels, 'selfMinusBoth', 'anti' );
 replace( labels, 'otherMinusNone', 'pro' );
+
+if ( params.is_pro_minus_anti )
+  [data, labels] = dsp3.pro_minus_anti( data, labels, cssetdiff(sitespec, 'outcomes') );
+end
 
 if ( ~dsp3.isdrug(drug_type) ), collapsecat( labels, 'drugs' ); end
 
@@ -86,7 +101,12 @@ tdata = squeeze( nanmean(dimref(data, twindow, tdim), tdim) );
 %
 %
 
-compare_lines( tdata, labels, freqs, params );
+try 
+  compare_lines( tdata, labels, freqs, params );
+catch err
+  warning( err.message );
+  return
+end
 
 %
 %
@@ -115,7 +135,7 @@ axs = pl.imagesc( data(:, f_ind, t_ind), labels, pcats );
 shared_utils.plot.fseries_yticks( axs, labfreqs, 5 );
 shared_utils.plot.tseries_xticks( axs, t(t_ind), 5 );
 shared_utils.plot.hold( axs );
-shared_utils.plot.add_vertical_lines( axs, find(t == 0) );
+shared_utils.plot.add_vertical_lines( axs, find(t(t_ind) == 0) );
 
 if ( params.do_save )
   dsp3.req_savefig( gcf, params.plot_p, labels, pcats, prefix )

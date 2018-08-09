@@ -19,12 +19,12 @@ conf = inputs.config;
 
 inputs.consolidated = dsp3.get_consolidated_data( conf );
 
-permonks = [true];
+permonks = [true, false];
 permag = false;
 
 % rev_types = { 'revA', 'orig', 'full' };
 rev_types = { 'revB', 'revA', 'orig', 'full' };
-drug_types = { 'drug_wbd' };
+drug_types = { 'nondrug', 'drug_wbd' };
 
 C = dsp3.numel_combvec( permonks, permag, rev_types, drug_types );
 
