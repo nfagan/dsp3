@@ -42,7 +42,7 @@ spec_type = params.specificity;
 
 if ( strcmp(params.specificity, 'blocks') )
   sitespec = csunion( blockspec, {'channels', 'regions', 'sites'} );
-elseif ( strcmp(params.specificity, 'days') )
+elseif ( strcmp(params.specificity, 'sites') )
   sitespec = csunion( dayspec, {'channels', 'regions', 'sites'} );
 else
   error( 'Unrecognized specificity "%s".', params.specificity );
