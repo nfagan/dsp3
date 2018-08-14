@@ -24,7 +24,7 @@ permag = false;
 
 % rev_types = { 'revA', 'orig', 'full' };
 rev_types = { 'revB', 'revA', 'orig', 'full' };
-drug_types = { 'nondrug', 'drug_wbd' };
+drug_types = { 'nondrug' };
 
 C = dsp3.numel_combvec( permonks, permag, rev_types, drug_types );
 
