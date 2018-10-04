@@ -1,15 +1,43 @@
-to_rem = dsp2.process.format.get_bad_days();
-rev = 'full';
+function stats__run_proanti_coh()
 
-revs = { 'orig', 'full', 'revA', 'revB' };
-days = { dsp2.process.format.get_bad_days() ...
-  , {}, dsp3.bad_days_revA(), dsp3.bad_days_revB() };
+conf = dsp3.config.load();
 
-assert( numel(revs) == numel(days) );
+rev_types = dsp3.get_rev_types();
 
-for i = 1:numel(days)
+revs = keys( rev_types );
+drug_types = { 'nondrug_wbd', 'drug_wbd' };
+epochs = { 'targacq' };
+zs = [ false, true ];
+pro_minus_antis = [ false, true ];
+specs = { 'sites' };
 
-  stats__proanti_coh('do_save',true, 'drug_type', 'drug_wbd' ...
-    , 'smooth_func', @(x) smooth(x, 5) ...
-    , 'remove', days{i}, 'base_subdir', revs{i}, 'base_prefix', 'smoothed' );
+C = dsp3.numel_combvec( revs, drug_types, epochs, zs, pro_minus_antis, specs );
+NC = size( C, 2 );
+
+for i = 1:NC
+  shared_utils.general.progress( i, NC );
+  
+  c = C(:, i);
+  
+  rev = revs{c(1)};
+  drug_type = drug_types{c(2)};
+  epoch = epochs{c(3)};
+  is_z = zs(c(4));
+  is_prominus_anti = pro_minus_antis(c(5));
+  spec = specs{c(6)};
+  
+  stats__proanti_coh( ...
+      'config',             conf ...
+    , 'do_save',            true ...
+    , 'drug_type',          drug_type ...
+    , 'base_subdir',        rev ...
+    , 'remove',             rev_types(rev) ...
+    , 'epochs',             epoch ...
+    , 'is_z',               is_z ...
+    , 'is_pro_minus_anti',  is_prominus_anti ...
+    , 'specificity',        spec ...
+  );
+  
+end
+
 end

@@ -8,6 +8,7 @@ defaults.smooth_func = @(x) smooth( x, 5 );
 params = dsp3.parsestruct( defaults, varargin );
 
 drug_type = params.drug_type;
+bsd = params.base_subdir;
 
 conf = dsp3.config.load();
 
@@ -22,7 +23,7 @@ lda = get_messy_lda_data( lda_dir );
 if ( strcmp(drug_type, 'nondrug') ), lda('drugs') = '<drugs>'; end
 if ( ~strcmp(params.specificity, 'sites') ), lda('channels') = '<channels>'; end
 
-path_components = { 'lda', dsp3.datedir, drug_type };
+path_components = { 'lda', dsp3.datedir, drug_type, bsd };
 
 params.plotp = char( dsp3.plotp(path_components) );
 params.analysisp = char( dsp3.analysisp(path_components) );
