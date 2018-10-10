@@ -12,6 +12,7 @@ defaults.spectra = true;
 defaults.is_z = true;
 defaults.is_pro_minus_anti = true;
 defaults.specificity = 'blocks';
+defaults.measure = 'coherence';
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -22,8 +23,14 @@ drug_type =   params.drug_type;
 bs =          params.base_subdir;
 manips =      'pro_v_anti';
 is_z =        params.is_z;
+meas_t =      params.measure;
 
-meas_types = ternary( is_z, 'z_scored_coherence', 'at_coherence' );
+if ( is_z )
+  meas_types = sprintf( 'z_scored_%s', meas_t );
+else
+  meas_types = sprintf( 'at_%s', meas_t );
+end
+
 z_type = ternary( is_z, 'z', 'nonz' );
 load_inputs = {};
 

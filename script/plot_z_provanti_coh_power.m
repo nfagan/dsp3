@@ -8,7 +8,7 @@ import shared_utils.io.fullfiles;
 epochs = { 'targacq' };
 drug_type = 'nondrug';
 manip = { 'pro_v_anti', 'pro_minus_anti' };
-meas_types = { 'z_scored_coherence' };
+meas_types = { 'z_scored_raw_power' };
 
 p = fullfiles( conf.PATHS.dsp2_analyses, meas_types, epochs, drug_type, manip );
 p = p( cellfun(@shared_utils.io.dexists, p) );
@@ -32,7 +32,7 @@ prefix = 'z_spectra';
 pltdat = data;
 pltlabs = labels';
 
-mask = find( pltlabs, {'choice', 'coherence', 'proMinusAnti'} );
+mask = find( pltlabs, {'choice', 'rawpower'} );
 
 t_ind = t >= -350 & t <= 300;
 f_ind = true( size(freqs) );
@@ -51,9 +51,7 @@ shared_utils.plot.fseries_yticks( axs, round(flip(p_freqs)), 5 );
 shared_utils.plot.tseries_xticks( axs, p_t, 5 );
 
 if ( do_save )
-  shared_utils.io.require_dir( plot_p );
-  fname = sprintf( '%s_%s', prefix, dsp3.fname(pltlabs, pcats, mask) );
-  dsp3.savefig( gcf, fullfile(plot_p, fname) );
+  dsp3.req_savefig( gcf(), plot_p, pltlabs, pcats, prefix );
 end
 
 %%  lines, over freqs
@@ -67,12 +65,12 @@ t_meaned = squeeze( nanmean(data(:, :, t_ind), 3) );
 pltdat = t_meaned;
 pltlabs = labels';
 
-mask = find( pltlabs, {'choice', 'coherence'} );
+mask = find( pltlabs, {'choice', 'rawpower'} );
 
 pl = plotlabeled.make_common();
 pl.group_order = { 'pro', 'anti' };
 pl.x = freqs;
-pl.y_lims = [ -0.15, 0.15 ];
+pl.y_lims = [ -0.22, 0.22 ];
 pl.add_smoothing = true;
 pl.smooth_func = @(x) smooth(x, 4);
 
@@ -87,10 +85,21 @@ shared_utils.plot.hold( axs );
 shared_utils.plot.add_horizontal_lines( axs, 0 );
 
 if ( do_save )
-  shared_utils.io.require_dir( plot_p );
-  fname = sprintf( '%s_%s', prefix, dsp3.fname(pltlabs, pcats, mask) );
-  dsp3.savefig( gcf, fullfile(plot_p, fname) );
+  dsp3.req_savefig( gcf(), plot_p, pltlabs, pcats, prefix );
 end
+
+%%
+
+figure(1);
+clf();
+
+axs = dsp3.plot_compare_lines( pltdat, pltlabs, gcats, pcats ...
+  , 'mask',         fcat.mask( pltlabs, @find, 'choice' ) ...
+  , 'x',            freqs ...
+  , 'smooth_func',  @(x) smooth(x, 4) ...
+);
+
+shared_utils.plot.set_ylims( axs, [-0.25, 0.25] );
 
 %%  lines, over time
 
@@ -116,9 +125,7 @@ axs = pl.lines( pltdat(mask, :), pltlabs(mask), gcats, pcats );
 arrayfun( @(x) xlabel(x, sprintf('ms from %s', char(pltlabs('epochs')))), axs );
 
 if ( do_save )
-  shared_utils.io.require_dir( plot_p );
-  fname = sprintf( '%s_%s', prefix, dsp3.fname(pltlabs, pcats, mask) );
-  dsp3.savefig( gcf, fullfile(plot_p, fname) );
+  dsp3.req_savefig( gcf(), plot_p, pltlabs, pcats, prefix );
 end
 
 

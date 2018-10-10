@@ -1,6 +1,8 @@
-function stats__run_proanti_coh()
+function stats__run_proanti_coh(conf)
 
-conf = dsp3.config.load();
+if ( nargin < 1 )
+  conf = dsp3.config.load();
+end
 
 rev_types = dsp3.get_rev_types();
 
@@ -36,6 +38,7 @@ for i = 1:NC
     , 'is_z',               is_z ...
     , 'is_pro_minus_anti',  is_prominus_anti ...
     , 'specificity',        spec ...
+    , 'measure',            'raw_power' ...
   );
   
 end
