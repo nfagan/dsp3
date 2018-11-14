@@ -75,14 +75,13 @@ for i = 1:numel(I)
   ax = subplot( shp(1), shp(2), i );
   
   [g_i, g_c] = findall( labels, gcats, I{i} );
-  
   [g_i, g_c] = sort_ic( g_i, g_c );
   
   hs = gobjects( 1, numel(g_i) );
   grp_dat = cell( size(hs) );
   
   for j = 1:numel(g_i)
-    dat = rowref( data, g_i{j});
+    dat = rowref( data, g_i{j} );
     
     means = params.summary_func( dat );
     errs = params.error_func( dat );
@@ -104,8 +103,8 @@ for i = 1:numel(I)
   axs(i) = ax;
   
   set( gcf, 'defaultLegendAutoUpdate', 'off' );
-  legend( hs, fcat.strjoin(g_c, ' | ') );
-  title( fcat.strjoin(p_c(:, i), ' | ') );
+  legend( hs, strrep(fcat.strjoin(g_c, ' | '), '_', ' ') );
+  title( strrep(fcat.strjoin(p_c(:, i), ' | '), '_', ' ') );
   
   n_cols = size( grp_dat{1}, 2 );
   ps = zeros( 1, n_cols );

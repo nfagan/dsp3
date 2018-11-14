@@ -47,7 +47,10 @@ data = vertcat( dat{:} );
 
 assert_rowsmatch( data, labels );
 assert( size(data, 2) == numel(freqs), 'Frequencies do not match data.' );
-assert( size(data, 3) == numel(t), 'Times do not match data.' );
+
+if ( ~isempty(data) )
+  assert( size(data, 3) == numel(t), 'Times do not match data.' );
+end
 
 end
 

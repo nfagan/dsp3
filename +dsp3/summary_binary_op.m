@@ -1,4 +1,4 @@
-function [dat, labs] = summary_binary_op(data, labels, spec, a, b, opfunc, sfunc, varargin)
+function [dat, labs, I] = summary_binary_op(data, labels, spec, a, b, opfunc, sfunc, varargin)
 
 %   SUMMARY_BINARY_OP -- Apply binary operation to data subsets.
 %
@@ -40,6 +40,7 @@ function [dat, labs] = summary_binary_op(data, labels, spec, a, b, opfunc, sfunc
 %     OUT:
 %       - `dat` (double)
 %       - `labs` (fcat)       
+%       - `I` (cell array of uint64)
 
 assert_ispair( data, labels );
 assert_hascat( labels, spec );
@@ -57,8 +58,8 @@ for i = 1:numel(I)
   a_ind = find( labels, a, I{i} );
   b_ind = find( labels, b, I{i} );
   
-  summarized_a = sfunc( rowref(data, a_ind) );
-  summarized_b = sfunc( rowref(data, b_ind) );
+  summarized_a = sfunc( data(a_ind, clns{:}) );
+  summarized_b = sfunc( data(b_ind, clns{:}) );
   
   dat(i, clns{:}) = opfunc( summarized_a, summarized_b );
 end

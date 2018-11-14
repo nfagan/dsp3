@@ -5,6 +5,8 @@ defaults.do_plot = false;
 defaults.meast = 'at_coherence';
 defaults.drug_type = 'nondrug';
 defaults.epochs = 'targacq';
+defaults.manipulation = 'pro_v_anti';
+defaults.is_z = false;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -18,25 +20,43 @@ drugt = params.drug_type;
 epochs = params.epochs;
 per_mag = params.per_magnitude;
 bs = params.base_subdir;
+manip = params.manipulation;
+is_z = params.is_z;
 
 mag_type = ternary( per_mag, 'magnitude', 'non_magnitude' );
 path_components = { 'gamma_beta_ratio', dsp3.datedir, bs, drugt, mag_type };
 
 analysis_p = char( dsp3.analysisp(path_components) );
 
-intermediate_dirs = dsp3.fullfiles( meast, drugt, epochs );
-coh_p = dsp3.get_intermediate_dir( intermediate_dirs );
-mats = shared_utils.io.find( coh_p, '.mat' );
+if ( is_z )
+  p = dsp3.fullfiles( params.config.PATHS.dsp2_analyses, 'z_scored_coherence', epochs, drugt, manip );
+  p = p( cellfun(@shared_utils.io.dexists, p) );
+  mats = shared_utils.io.findmat( p );
+  
+  meas_func = @(x) x;
+else
+  intermediate_dirs = dsp3.fullfiles( meast, drugt, epochs );
+  coh_p = dsp3.get_intermediate_dir( intermediate_dirs );
+  mats = shared_utils.io.findmat( coh_p );
+  
+  meas_func = @(meas) meas.measure;
+end
 
 basespec = { 'measure', 'epochs' };
 
 %%  load data
 
 [data, labels, freqs, t] = dsp3.load_signal_measure( mats ...
-  , 'get_meas_func', @(meas) meas.measure ...
+  , 'get_meas_func', meas_func ...
 );
 
-dsp3.add_context_labels( labels );
+if ( ~is_z )
+  dsp3.add_context_labels( labels );
+else
+  if ( ~dsp3.isdrug(drugt) )
+    collapsecat( labels, 'drugs' );
+  end
+end
 
 data = indexpair( data, labels, findnone(labels, params.remove) );
 
@@ -56,6 +76,12 @@ beta_ind = find( bandlabs, 'beta' );
 ratio = bandmeans(gamma_ind) ./ bandmeans(beta_ind);
 bandlabs = setcat( bandlabs(gamma_ind), 'bands', 'gamma div beta' );
 
+base_band_mask = fcat.mask( bandlabs ...
+  , @findnone, 'errors' ...
+  , @findnot, {'cued', 'targAcq'} ...
+  , @findnot, {'choice', 'targOn'} ...
+);
+
 %%  pro v anti
 
 usedat = ratio;
@@ -64,7 +90,7 @@ uselabs = bandlabs';
 subspec = csunion( basespec, {'trialtypes', 'channels', 'regions', 'sites', 'days' ...
   , 'drugs', 'administration', 'bands'} );
 
-mask = findnot( uselabs, {'cued', 'targAcq'} );
+mask = base_band_mask;
 
 [sbdat, sblabs] = dsp3.a_summary_minus_b( usedat, uselabs', subspec, 'self', 'both', @nanmean, mask );
 [ondat, onlabs] = dsp3.a_summary_minus_b( usedat, uselabs', subspec, 'other', 'none', @nanmean, mask );
@@ -77,10 +103,15 @@ prolabs = [ sblabs'; onlabs ];
 
 funcs = { @mean, @median, @rows, @signrank };
 tblspec = csunion( cssetdiff(subspec, {'days', 'sites', 'channels'}), 'outcomes' );
-[m_tbl, ~, mlabs] = dsp3.descriptive_table( prodat, prolabs', tblspec, funcs );
 
-if ( do_save )
-  dsp3.savetbl( m_tbl, analysis_p, mlabs, tblspec, 'proanti_descriptives' );
+try
+  [m_tbl, ~, mlabs] = dsp3.descriptive_table( prodat, prolabs', tblspec, funcs );
+
+  if ( do_save )
+    dsp3.savetbl( m_tbl, analysis_p, mlabs, tblspec, 'proanti_descriptives' );
+  end
+catch err
+  warning( err.message );
 end
 
 %%  1-way anova, outcome
@@ -91,7 +122,7 @@ uselabs = bandlabs';
 anovaspec = csunion( basespec, {'trialtypes', 'drugs', 'regions', 'administration'} );
 factor = 'outcomes';
 
-mask = fcat.mask( uselabs, @findnone, 'errors', @findnot, {'cued', 'targAcq'} );
+mask = base_band_mask;
 
 outs = dsp3.anova1( usedat, uselabs', anovaspec, factor, 'mask', mask );
 
@@ -120,16 +151,21 @@ uselabs = bandlabs';
 tspec = csunion( basespec, {'trialtypes', 'drugs', 'regions', 'administration', 'contexts'} );
 factor = 'outcomes';
 
-mask = fcat.mask( uselabs, @findnone, 'errors', @findnot, {'cued', 'targAcq'} );
+mask = base_band_mask;
 
 [tlabs, I] = keepeach( uselabs', tspec, mask );
 
 tbls = cell( size(I) );
+t_success = true;
 
 for i = 1:numel(I)
   [inds, C] = findall( uselabs, factor, I{i} );
   
-  assert( numel(inds) == 2 );
+  if ( numel(inds) ~= 2 )
+    warning( 'Expected 2 outcomes per context; got %d.', numel(I) );
+    t_success = false;
+    break;
+  end
   
   [~, p, ~, stats] = ttest2( usedat(inds{1}), usedat(inds{2}) );
   stats.p = p;
@@ -139,7 +175,7 @@ for i = 1:numel(I)
   tbls{i} = struct2table( stats );
 end
 
-if ( do_save )
+if ( t_success && do_save )
   for i = 1:numel(tbls)
     dsp3.savetbl( tbls{i}, analysis_p, tlabs(i), tspec, 'per_context_ttest' );
   end
@@ -154,7 +190,7 @@ uselabs = addcat( bandlabs', compcat );
 
 alpha = params.alpha;
 
-mask = findnone( uselabs, 'errors', findnot(uselabs, {'cued', 'targAcq'}) );
+mask = base_band_mask;
 
 anovaspec = csunion( basespec, {'trialtypes', 'drugs', 'regions', 'administration'} );
 [alabs, I] = keepeach( uselabs', anovaspec, mask );
@@ -193,8 +229,8 @@ end
 if ( do_plt )
   pltdat = ratio;
   pltlabels = bandlabs';
-
-  mask = findnone( pltlabels, {'errors', 'cued'} );
+  
+  mask = base_band_mask;
 
   pl = plotlabeled.make_common();
   pl.x_order = { 'self', 'both', 'other' };
@@ -225,7 +261,10 @@ if ( dsp3.isdrug(drugt) )
   
   pairs = { {'self', 'both'}, {'other', 'none'} };
   
-  mask = fcat.mask( uselabs, @find, 'choice' );
+  choice_mask = find( uselabs, {'choice', 'targAcq'}, base_band_mask );
+  cued_mask = find( uselabs, {'cued', 'targOn'}, base_band_mask );
+  
+  mask = union( choice_mask, cued_mask );
   
   opfunc = @minus;
   sfunc = @nanmean;
