@@ -22,6 +22,7 @@ validate_manipulation( manipulation );
 input_p = dsp3.get_intermediate_dir( fullfile(meas_type, epoch) );
 output_p = dsp3.get_intermediate_dir( fullfile(sprintf('z_%s', meas_type) ...
   , drug_type, manipulation, epoch) );
+output_p = char( output_p );
 
 mats = dsp3.require_intermediate_mats( params.files, input_p, params.files_containing );
 

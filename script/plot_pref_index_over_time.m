@@ -39,6 +39,7 @@ behav = remove( dsp3.get_subset(behav, drug_type), params.remove );
 path_components = { 'behavior', dsp3.datedir, bs, drug_type, 'pref_index_over_time' };
 
 plot_save_p = char( dsp3.plotp(path_components, conf) );
+stat_save_p = char( dsp3.analysisp(path_components, conf) );
 
 %%  check descriptives pre and post
 
@@ -278,7 +279,7 @@ if ( do_permute )
 
   slopes = cell( n_reps+1, 1 );
 
-  parfor j = 1:n_reps+1
+  for j = 1:n_reps+1
     fprintf( '\n %d of %d', j, n_reps );
 
     if ( j == 1 )
@@ -300,10 +301,12 @@ if ( do_permute )
 
       [t_series_means, t_series_errs, map, outs] = dsp3.get_pref_over_time_means_errs( plt );
 
-      max_post = bin_pre + n_keep_post;
+      if ( ~isinf(n_keep_post) )
+        max_post = bin_pre + n_keep_post;
 
-      t_series_means = t_series_means(:, 1:max_post);
-      t_series_errs = t_series_errs(:, 1:max_post);
+        t_series_means = t_series_means(:, 1:max_post);
+        t_series_errs = t_series_errs(:, 1:max_post);
+      end
 
       for i = 1:size(t_series_means, 1)
         means = t_series_means(i, :);
@@ -369,7 +372,23 @@ if ( do_permute )
 
     stats = append( stats, set_data(subset_real, stat_data) );
   end
-
+  
+  labs = fcat.from( stats.labels );
+  slope_info = stats.data;
+  
+  [t, rc] = tabular( labs, {'outcomes', 'drugs'} );
+  
+  c1 = rc{2}';
+  addsetcat( c1, 'measure', 'slope' );
+  c2 = rc{2}';
+  addsetcat( c2, 'measure', 'p' );
+  
+  slope_tbl = fcat.table( cellrefs(slope_info(:, 1), t), rc{1}, c1 );
+  p_tbl = fcat.table( cellrefs(slope_info(:, 1), t), rc{1}, c2 );
+  
+  tbls = [ slope_tbl, p_tbl ];
+  
+  dsp3.req_writetable( tbls, stat_save_p, labs, {'outcomes', 'drugs'} );
 end
 
 
