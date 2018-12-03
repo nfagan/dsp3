@@ -11,8 +11,11 @@ defaults.epochs = 'targacq';
 defaults.spectra = true;
 defaults.is_z = true;
 defaults.is_pro_minus_anti = true;
+defaults.is_post_minus_pre = false;
 defaults.specificity = 'blocks';
 defaults.measure = 'coherence';
+defaults.time_window = [-250, 0];
+defaults.log_scale = false;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -24,6 +27,8 @@ bs =          params.base_subdir;
 manips =      'pro_v_anti';
 is_z =        params.is_z;
 meas_t =      params.measure;
+twindow =     params.time_window;
+is_drug =     dsp3.isdrug( drug_type );
 
 if ( is_z )
   meas_types = sprintf( 'z_scored_%s', meas_t );
@@ -51,6 +56,8 @@ if ( strcmp(params.specificity, 'blocks') )
   sitespec = csunion( blockspec, {'channels', 'regions', 'sites'} );
 elseif ( strcmp(params.specificity, 'sites') )
   sitespec = csunion( dayspec, {'channels', 'regions', 'sites'} );
+elseif ( strcmp(params.specificity, 'days') )
+  sitespec = csunion( dayspec, {'regions'} );
 else
   error( 'Unrecognized specificity "%s".', params.specificity );
 end
@@ -71,6 +78,10 @@ mats = shared_utils.io.find( p, '.mat' );
 
 [data, labels, freqs, t] = dsp3.load_signal_measure( mats, load_inputs{:} );
 
+if ( params.log_scale )
+  data = log10( data );
+end
+
 %   pro v. anti if necessary
 if ( haslab(prune(labels), 'self') )
   [data, labels] = dsp3.pro_v_anti( data, labels, cssetdiff(sitespec, 'outcomes') );  
@@ -87,6 +98,13 @@ if ( ~dsp3.isdrug(drug_type) ), collapsecat( labels, 'drugs' ); end
 
 data = indexpair( data, labels, findnone(labels, params.remove) );
 
+if ( is_drug && params.is_post_minus_pre )
+  drug_spec = cssetdiff( sitespec, 'administration' );
+
+  [data, labels] = dsp3.a_summary_minus_b( data, labels', drug_spec, 'post', 'pre' );
+  setcat( labels, 'administration', 'post-pre' );
+end
+
 %
 % spectra
 %
@@ -99,7 +117,7 @@ end
 %
 %
 
-twindow = t >= -250 & t <= 0;
+twindow = t >= params.time_window(1) & t <= params.time_window(2);
 tdim = 3;
 
 tdata = squeeze( nanmean(dimref(data, twindow, tdim), tdim) );
@@ -120,14 +138,19 @@ end
 %
 
 [bands, bandnames] = dsp3.get_bands();
-ttests( tdata, labels, freqs, bands, bandnames, params );
+
+try
+  ttests( tdata, labels, freqs, bands, bandnames, params );
+catch err
+  warning( err.message );
+end
 
 end
 
 function plot_spectra( data, labels, freqs, t, params )
 
 prefix = sprintf( '%sproanti_spectra', params.base_prefix );
-pcats = { 'outcomes', 'drugs', 'administration' };
+pcats = { 'outcomes', 'drugs', 'administration', 'regions' };
 
 f_ind = freqs <= 100;
 t_ind = t >= -350 & t <= 300;
@@ -143,6 +166,7 @@ shared_utils.plot.fseries_yticks( axs, labfreqs, 5 );
 shared_utils.plot.tseries_xticks( axs, t(t_ind), 5 );
 shared_utils.plot.hold( axs );
 shared_utils.plot.add_vertical_lines( axs, find(t(t_ind) == 0) );
+shared_utils.plot.fullscreen();
 
 if ( params.do_save )
   dsp3.req_savefig( gcf, params.plot_p, labels, pcats, prefix )
@@ -165,7 +189,8 @@ if ( dsp3.isdrug(params.drug_type) )
   shared_utils.plot.fseries_yticks( axs, labfreqs, 5 );
   shared_utils.plot.tseries_xticks( axs, t(t_ind), 5 );
   shared_utils.plot.hold( axs );
-  shared_utils.plot.add_vertical_lines( axs, find(t == 0) );
+  shared_utils.plot.add_vertical_lines( axs, find(t(t_ind) == 0) );
+  shared_utils.plot.fullscreen();
 
   if ( params.do_save )
     dsp3.req_savefig( gcf, params.plot_p, sublabs, pcats, prefix )
@@ -245,10 +270,10 @@ assert( numel(colors) == numel(threshs) );
 
 if ( is_drug )
   gcats = { 'drugs' };
-  pcats = { 'trialtypes', 'outcomes', 'administration', 'measure' };
+  pcats = { 'trialtypes', 'outcomes', 'administration', 'measure', 'regions' };
 else
   gcats = { 'outcomes' };
-  pcats = { 'trialtypes', 'drugs', 'administration', 'measure' };
+  pcats = { 'trialtypes', 'drugs', 'administration', 'measure', 'regions' };
 end
 
 if ( per_monk ), pcats{end+1} = 'monkeys'; end
@@ -348,6 +373,7 @@ if ( params.do_save )
   fname = dsp3.prefix( prefix, fname );
 
   dsp3.savefig( gcf, fullfile(params.plot_p, fname) );
+  shared_utils.plot.fullscreen( gcf );
 end
 
 end

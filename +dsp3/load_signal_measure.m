@@ -1,5 +1,19 @@
 function [data, labels, freqs, t] = load_signal_measure(mats, varargin)
 
+persistent d;
+persistent l;
+persistent f_;
+persistent t_;
+
+if ( check_use_cached(mats) )
+  fprintf( '\n\n Using cached data ...' );
+  data = d;
+  labels = l';
+  freqs = f_;
+  t = t_;
+  return
+end
+
 defaults.identify_meas_func = @default_identify_meas_type;
 defaults.get_meas_func = @default_get_meas_func;
 
@@ -52,6 +66,17 @@ if ( ~isempty(data) )
   assert( size(data, 3) == numel(t), 'Times do not match data.' );
 end
 
+d = data;
+l = labels';
+f_ = freqs;
+t_ = t;
+
+end
+
+function tf = check_use_cached(mats)
+persistent last_mats;
+tf = ~isempty( last_mats ) && isequal( sort(last_mats(:)), sort(mats(:)) );
+last_mats = mats;
 end
 
 function meas = default_get_meas_func(meas)
