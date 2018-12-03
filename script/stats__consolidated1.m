@@ -1,6 +1,6 @@
 repadd( 'dsp3/script' );
 
-%%  pro v. anti coh, non drug
+%%  pro v. anti coh / power, non drug
 
 rev_types = dsp3.get_rev_types();
 conf = dsp3.config.load();

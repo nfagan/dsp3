@@ -8,7 +8,7 @@ params = dsp3.parsestruct( defaults, varargin );
 meas_type = params.meas_type;
 
 base_input_p = dsp2.io.get_path( 'measures', meas_type, 'complete' );
-base_output_p = dsp3.get_intermediate_dir( meas_type );
+base_output_p = char( dsp3.get_intermediate_dir(meas_type) );
 
 io = dsp2.io.get_dsp_h5();
 

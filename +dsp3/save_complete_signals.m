@@ -12,6 +12,7 @@ io = dsp2.io.get_dsp_h5();
 
 base_input_p = io.fullfile( 'Signals', ref_type, 'complete' );
 base_output_p = dsp3.get_intermediate_dir( fullfile('signals', ref_type) );
+base_output_p = char( base_output_p );
 
 if ( strcmp(params.epochs, 'all') )
   epochs = io.get_component_group_names( base_input_p );

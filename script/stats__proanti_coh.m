@@ -242,7 +242,7 @@ mean_spec = union( spec, 'outcomes' );
 [m_tbl, tvals, meanlabs] = dsp3.descriptive_table( bandmeans, bandlabs', mean_spec, funcs, mask );
 
 if ( params.do_save )
-  prefix = 'proanti_coherence';
+  prefix = sprintf( 'proanti_%s', params.measure );
   analysis_p = params.analysis_p;
   
   dsp3.savetbl( t_tbls, analysis_p, tlabs, nonun_or_other(tlabs, spec), prefix );
@@ -366,7 +366,7 @@ for i = 1:numel(axs)
 end
 
 if ( params.do_save )
-  prefix = sprintf( '%spro_anti_coh', params.base_prefix );
+  prefix = sprintf( '%spro_anti_%s', params.base_prefix, params.measure );
   shared_utils.io.require_dir( params.plot_p );
   
   fname = dsp3.fname( newlabs, dsp3.nonun_or_other(newlabs, pcats) );
