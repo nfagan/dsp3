@@ -1,20 +1,23 @@
-mats = shared_utils.io.findmat( '~/Desktop' );
+
+data_p = '/Volumes/My Passport/NICK/Chang Lab 2016/dsp3/data/sfcoh';
 
 try
-  acc = shared_utils.io.fload( mats{1} );
+  acc = shared_utils.io.fload( fullfile(data_p, 'sfc_pre_acc_spike_all_withsame.mat') );
 catch err
   warning( err.message );
   acc = {};
 end
 
 try
-  bla = shared_utils.io.fload( mats{2} );
+  bla = shared_utils.io.fload( fullfile(data_p, 'sfc_pre_bla_spike_all_withsame.mat') );
 catch err
   warning( err.message );
   bla = {};
 end
 
-[data, labels] = dsp3_get_converted_cc_sf_data( acc, bla );
+[data, labels] = dsp3_get_converted_cc_sf_data( acc, bla, true );
+
+clear acc bla;
 
 %%
 
@@ -53,10 +56,16 @@ freqs = linspace( 0, 500, size(pltdat, 2) );
 f_ind = freqs >= 0 & freqs <= 100;
 
 pl = plotlabeled.make_spectrogram( freqs(f_ind), t );
+pl.c_lims = [-0.015, 0.015];
+pl.shape = [2, 1];
+
+mask = fcat.mask( pltlabs ...
+  , @find, 'acc_spike_bla_field' ...
+);
 
 pcats = { 'outcomes' };
 
-axs = pl.imagesc( pltdat(:, f_ind, :), pltlabs, pcats );
+axs = pl.imagesc( pltdat(mask, f_ind, :), pltlabs(mask), pcats );
 shared_utils.plot.tseries_xticks( axs, t, 5 );
 shared_utils.plot.fseries_yticks( axs, round(flip(freqs(f_ind))), 5 );
 

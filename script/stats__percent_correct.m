@@ -156,12 +156,16 @@ prefix = 'pcorrect_good_trials';
 
 pl = plotlabeled();
 pl.error_func = @plotlabeled.sem;
-pl.y_lims = [0, 101];
+pl.y_lims = [0, 100];
 pl.group_order = { 'low', 'medium', 'high' };
 
-plt = labeled( pcorr, errlabs );
+plt = labeled( 100-pcorr, errlabs );
+
+pl.add_points = true;
+pl.marker_size = 5;
 
 axs = pl.bar( plt, 'contexts', 'magnitudes', 'trialtypes' );
+% axs = pl.violinplot( pcorr, errlabs, {'contexts', 'magnitudes'}, 'trialtypes' );
 
 arrayfun( @(x) ylabel(x, 'Percent Correct'), axs );
 
@@ -191,7 +195,9 @@ if ( dsp3.isdrug(drug_type) )
   gcats = { 'administration' };
   pcats = { 'contexts', 'trialtypes' };
 
-  axs = pl.bar( pltdat(mask), pltlabs(mask), xcats, gcats, pcats );
+%   axs = pl.bar( pltdat(mask), pltlabs(mask), xcats, gcats, pcats );
+  
+  axs = pl.violinplot( pltdat(mask), pltlabs(mask), xcats, cshorzcat(gcats, pcats) );
 
   if ( do_save )
     dsp3.req_savefig( gcf, plot_p, pltlabs, unique(cshorzcat(xcats, gcats, pcats)), prefix );

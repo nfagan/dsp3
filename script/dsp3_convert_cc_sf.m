@@ -1,13 +1,18 @@
-function [data, labels] = dsp3_convert_cc_sf(reg, site_offset)
+function [data, labels] = dsp3_convert_cc_sf(reg, site_offset, keep_nan)
 
 if ( isempty(reg) ), reg = {}; end
 if ( nargin < 2 ), site_offset = 0; end
+if ( nargin < 3 || isempty(keep_nan) ), keep_nan = false; end
 
 validateattributes( site_offset, {'double'}, {'scalar'}, mfilename, 'site_offset' );
 
 reg = prune_empties( reg );
 
 [data, labels] = linearize( reg, site_offset );
+
+if ( keep_nan )
+  return
+end
 
 is_valid = find( ~any(any(isinf(data) | isnan(data), 3), 2) );
 

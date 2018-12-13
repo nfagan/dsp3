@@ -4,26 +4,38 @@ import shared_utils.cell.percell;
 
 defaults = dsp3.get_behav_stats_defaults();
 defaults.specificity = 'sites';
+defaults.underlying_measure = 'coherence';
 defaults.smooth_func = @(x) smooth( x, 5 );
 params = dsp3.parsestruct( defaults, varargin );
 
 drug_type = params.drug_type;
 bsd = params.base_subdir;
 
+underlying_measure = validatestring( params.underlying_measure ...
+  , {'coherence', 'sfcoherence'}, mfilename, 'underlying_measure' );
+
 conf = dsp3.config.load();
 
-date_dir = get_data_dir( params.specificity );
-% date_dir = '061118';  % per day
-% date_dir = '061218';  % across days
-% date_dir = '072418';  % per site
+switch ( underlying_measure )
+  case 'coherence'
+    % date_dir = '061118';  % per day
+    % date_dir = '061218';  % across days
+    % date_dir = '072418';  % per site
+    date_dir = get_data_dir( params.specificity );
+  case 'sfcoherence'
+    date_dir = get_sf_data_dir( params.specificity );
+end
+
 lda_dir = fullfile( conf.PATHS.dsp2_analyses, 'lda', date_dir );
 
 lda = get_messy_lda_data( lda_dir );
 
 if ( strcmp(drug_type, 'nondrug') ), lda('drugs') = '<drugs>'; end
-if ( ~strcmp(params.specificity, 'sites') ), lda('channels') = '<channels>'; end
+if ( ~strcmp(params.specificity, 'sites') && contains_fields(lda, 'channels') )
+  lda('channels') = '<channels>'; 
+end
 
-path_components = { 'lda', dsp3.datedir, drug_type, bsd };
+path_components = { 'lda', dsp3.datedir, bsd, underlying_measure, drug_type };
 
 params.plotp = char( dsp3.plotp(path_components) );
 params.analysisp = char( dsp3.analysisp(path_components) );
@@ -36,6 +48,10 @@ ldalabs = fcat.from( lda.labels );
 ldadat = lda.data * 100;  % convert to percent
 freqs = lda.frequencies;
 time = -500:50:500;
+
+if ( strcmp(params.underlying_measure, 'sfcoherence') )
+  renamecat( ldalabs, 'sites', 'channels' );
+end
 
 %  reshape such that each permutation, currently the 3-dimension, is concatenated
 %   along the first dimension, reducing the 3d-array to a matrix
@@ -85,7 +101,8 @@ colors = colors( sort_ind );
 assert( numel(colors) == numel(threshs) );
 
 gcats = { 'measure' };
-pcats = { 'trialtypes', 'drugs', 'administration', 'contexts', 'days', 'channels' };
+pcats = { 'trialtypes', 'drugs' ...
+  , 'administration', 'contexts', 'days', 'channels', 'regions' };
 
 pcats = dsp3.nonun_or_all( labels, pcats );
 
@@ -173,6 +190,8 @@ for i = 1:numel(axs)
   end
 end
 
+shared_utils.plot.add_horizontal_lines( axs, 50 );
+
 if ( do_save )
   prefix = 'pro_anti_coh';
   shared_utils.io.require_dir( params.plotp );
@@ -182,6 +201,13 @@ if ( do_save )
 
   dsp3.savefig( gcf, fullfile(params.plotp, fname) );
 end
+
+end
+
+function date_dir = get_sf_data_dir(spec)
+
+% date_dir = '120618';
+date_dir = '121018';
 
 end
 
