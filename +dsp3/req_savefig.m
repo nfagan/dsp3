@@ -1,4 +1,4 @@
-function req_savefig(f, p, labs, cats, prefix, formats)
+function fname = req_savefig(f, p, labs, cats, prefix, formats)
 
 if ( nargin < 5 ), prefix = ''; end
 if ( nargin < 6 ), formats = { 'epsc', 'png', 'fig' }; end

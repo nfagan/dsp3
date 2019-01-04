@@ -16,6 +16,8 @@ defaults.specificity = 'blocks';
 defaults.measure = 'coherence';
 defaults.time_window = [-250, 0];
 defaults.log_scale = false;
+defaults.xlims = [];
+defaults.keep_n_blocks_post = 0;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -77,6 +79,10 @@ mats = shared_utils.io.find( p, '.mat' );
 %
 
 [data, labels, freqs, t] = dsp3.load_signal_measure( mats, load_inputs{:} );
+
+if ( params.keep_n_blocks_post )
+  [data, labels] = keep_n_blocks_post( data, labels', params.keep_n_blocks_post );
+end
 
 if ( params.log_scale )
   data = log10( data );
@@ -152,8 +158,8 @@ function plot_spectra( data, labels, freqs, t, params )
 prefix = sprintf( '%sproanti_spectra', params.base_prefix );
 pcats = { 'outcomes', 'drugs', 'administration', 'regions' };
 
-f_ind = freqs <= 100;
-t_ind = t >= -350 & t <= 300;
+f_ind = freqs >= 10 & freqs <= 100;
+t_ind = t >= -300 & t <= 300;
 
 pltfreqs = freqs( f_ind );
 labfreqs = round( flip(pltfreqs) );
@@ -196,6 +202,31 @@ if ( dsp3.isdrug(params.drug_type) )
     dsp3.req_savefig( gcf, params.plot_p, sublabs, pcats, prefix )
   end
 end
+
+end
+
+function [data, labels] = keep_n_blocks_post(data, labels, n)
+
+mask = find( labels, 'post' );
+
+I = findall( labels, {'days'}, mask );
+
+to_keep = find( labels, 'pre' );
+
+for i = 1:numel(I)
+  blocks_post = combs( labels, {'blocks', 'sessions'}, I{i} );
+  
+  blocks_post = sortrows( categorical(blocks_post)' );
+  
+  use_n = min( size(blocks_post, 1), n );
+  
+  for j = 1:use_n
+    to_keep = union( to_keep, find(labels, cellstr(blocks_post(j, :)), I{i}) );
+  end
+end
+
+data = rowref( data, to_keep );
+keep( labels, to_keep );
 
 end
 
@@ -341,6 +372,10 @@ end
 shared_utils.plot.hold( axs );
 shared_utils.plot.match_xlims( axs );
 shared_utils.plot.match_ylims( axs );
+
+if ( ~isempty(params.xlims) )
+  shared_utils.plot.set_xlims( axs, params.xlims );
+end
 
 % if ( ~is_drug )
 %   arrayfun( @(x) set(x, 'ylim', [-0.15, 0.15]), axs );

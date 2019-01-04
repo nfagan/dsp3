@@ -4,15 +4,29 @@ import shared_utils.cell.percell;
 
 defaults = dsp3.get_behav_stats_defaults();
 defaults.specificity = 'sites';
+defaults.is_cued = false;
 defaults.underlying_measure = 'coherence';
+defaults.analysis_type = 'lda';
 defaults.smooth_func = @(x) smooth( x, 5 );
+defaults.plot_spec = { 'days', 'channels', 'regions' };
+defaults.plot_per_site = true;
+defaults.time_window = [-250, 0];
+defaults.freq_window = [ 15, 25 ];
+defaults.xlims = [];
+defaults.over_frequency = true;
+defaults.keep_one_per_site = false;
+
 params = dsp3.parsestruct( defaults, varargin );
 
 drug_type = params.drug_type;
 bsd = params.base_subdir;
+plot_spec = params.plot_spec;
+is_cued = params.is_cued;
 
 underlying_measure = validatestring( params.underlying_measure ...
   , {'coherence', 'sfcoherence'}, mfilename, 'underlying_measure' );
+analysis_type = validatestring( params.analysis_type ...
+  , {'lda', 'rf'}, mfilename, 'analysis_type' );
 
 conf = dsp3.config.load();
 
@@ -23,10 +37,10 @@ switch ( underlying_measure )
     % date_dir = '072418';  % per site
     date_dir = get_data_dir( params.specificity );
   case 'sfcoherence'
-    date_dir = get_sf_data_dir( params.specificity );
+    date_dir = get_sf_data_dir( params.specificity, analysis_type, is_cued );
 end
 
-lda_dir = fullfile( conf.PATHS.dsp2_analyses, 'lda', date_dir );
+lda_dir = fullfile( conf.PATHS.dsp2_analyses, analysis_type, date_dir );
 
 lda = get_messy_lda_data( lda_dir );
 
@@ -35,7 +49,7 @@ if ( ~strcmp(params.specificity, 'sites') && contains_fields(lda, 'channels') )
   lda('channels') = '<channels>'; 
 end
 
-path_components = { 'lda', dsp3.datedir, bsd, underlying_measure, drug_type };
+path_components = { analysis_type, dsp3.datedir, bsd, underlying_measure, drug_type };
 
 params.plotp = char( dsp3.plotp(path_components) );
 params.analysisp = char( dsp3.analysisp(path_components) );
@@ -56,11 +70,23 @@ end
 %  reshape such that each permutation, currently the 3-dimension, is concatenated
 %   along the first dimension, reducing the 3d-array to a matrix
 
-ts = [ -250, 0 ];
+if ( params.over_frequency )
+  ts = params.time_window;
 
-t_ind = time >= ts(1) & time <= ts(2);
+  t_ind = time >= ts(1) & time <= ts(2);
 
-t_meaned = squeeze( nanmean(ldadat(:, :, t_ind, :), 3) );
+  t_meaned = squeeze( nanmean(ldadat(:, :, t_ind, :), 3) );
+  
+  x_values = freqs;
+else  
+  fs = params.freq_window;
+  
+  f_ind = freqs >= fs(1) & freqs <= fs(2);
+  
+  t_meaned = squeeze( nanmean(ldadat(:, f_ind, :, :), 2) );
+  
+  x_values = time;
+end
 
 nrows = size( t_meaned, 1 );
 ncols = size( t_meaned, 2 );
@@ -76,17 +102,51 @@ for i = 1:niters
   stp = stp + nrows;
 end
 
-I = findall( newlabs, {'days', 'channels', 'regions'} );
+if ( params.keep_one_per_site )
+  newdat = keep_one_per_site( newdat, newlabs );
+  newdat = keep_valid_rows( newdat, newlabs );
+end
+
+if ( ~params.plot_per_site )
+  collapsecat( newlabs, {'channels', 'days'} );
+end
+
+I = findall( newlabs, plot_spec );
 
 for i = 1:numel(I)
   shared_utils.general.progress( i, numel(I), mfilename );
   
-  compare_lines( newdat, newlabs, freqs, I{i}, params );
+  compare_lines( newdat, newlabs, x_values, I{i}, params );
 end
 
 end
 
-function compare_lines( tdata, labels, freqs, basemask, params )
+function [dat, labs] = keep_valid_rows(dat, labs)
+
+is_missing = all( dat == 0, 2 );
+
+dat(is_missing, :) = [];
+keep( labs, find(~is_missing) );
+
+end
+
+function [dat, labs] = keep_one_per_site(dat, labs)
+
+I = findall( labs, {'measure', 'drugs', 'days', 'channels', 'regions' ...
+  , 'trialtypes', 'contexts'} );
+
+unqs = unique( cellfun(@numel, I) );
+
+assert( numel(unqs) == 1 );
+
+to_keep = cellfun( @(x) x(1), I );
+
+dat = dat(to_keep, :);
+keep( labs, to_keep );
+
+end
+
+function compare_lines( tdata, labels, x_values, basemask, params )
 
 F = figure(1);
 clf( F );
@@ -144,14 +204,14 @@ for i = 1:numel(p_i)
   errs1 = plotlabeled.nansem( first );
   errs2 = plotlabeled.nansem( sec );
   
-  h1 = plot( ax, freqs, sfunc(mean1) );
-  h2 = plot( ax, freqs, sfunc(mean2) );
+  h1 = plot( ax, x_values, sfunc(mean1) );
+  h2 = plot( ax, x_values, sfunc(mean2) );
   
   ops = { @plus, @minus };
   
   for j = 1:numel(ops)
-    h3 = plot( ax, freqs, ops{j}(sfunc(mean1), sfunc(errs1)) );
-    h4 = plot( ax, freqs, ops{j}(sfunc(mean2), sfunc(errs2)) );
+    h3 = plot( ax, x_values, ops{j}(sfunc(mean1), sfunc(errs1)) );
+    h4 = plot( ax, x_values, ops{j}(sfunc(mean2), sfunc(errs2)) );
 
     set( h3, 'color', get(h1, 'color') );
     set( h4, 'color', get(h2, 'color') );
@@ -171,6 +231,10 @@ shared_utils.plot.hold( axs );
 shared_utils.plot.match_xlims( axs );
 shared_utils.plot.match_ylims( axs );
 
+if ( ~isempty(params.xlims) )
+  shared_utils.plot.set_xlims( axs, params.xlims );
+end
+
 % arrayfun( @(x) set(x, 'ylim', [-0.15, 0.15]), axs );
 
 markersize = 8;
@@ -185,7 +249,7 @@ for i = 1:numel(axs)
     colorspec = sprintf( '%s*', colors{j} );
     
     for k = 1:numel(inds)
-      plot( ax, freqs(inds(k)), lims(2), colorspec, 'markersize', markersize );
+      plot( ax, x_values(inds(k)), lims(2), colorspec, 'markersize', markersize );
     end
   end
 end
@@ -204,10 +268,28 @@ end
 
 end
 
-function date_dir = get_sf_data_dir(spec)
+function date_dir = get_sf_data_dir(spec, analysis_type, is_cued)
+
+switch ( spec )
+  case 'contexts'
+    if ( strcmp(analysis_type, 'lda') )
+      if ( is_cued )
+        date_dir = '121918';
+      else
+        date_dir = '121018';
+      end
+    else
+      assert( strcmp(analysis_type, 'rf') );
+      date_dir = '121718';
+    end
+  case 'sites'
+    assert( strcmp(analysis_type, 'lda') );
+    date_dir = '121318';
+  otherwise
+    error( 'Unrecognized specificty "%s".', spec );
+end
 
 % date_dir = '120618';
-date_dir = '121018';
 
 end
 

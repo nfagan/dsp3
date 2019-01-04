@@ -1,5 +1,14 @@
 function out = get_messy_lda_data(lda_dir)
 
+persistent cached;
+persistent cached_lda_dir;
+
+if ( ~isempty(cached) && strcmp(cached_lda_dir, lda_dir) )
+  fprintf( '\n Using cached data for "%s".', lda_dir );
+  out = cached;
+  return
+end
+
 fnames = shared_utils.io.dirnames( lda_dir, 'all_data.mat', false );
 
 unds = strfind( fnames, '_' );
@@ -46,5 +55,8 @@ all_data = dimref( all_data, ok_freqs, 2 );
 files{1}.frequencies = all_freqs(ok_freqs);
 
 out = set_data( files{1}, all_data );
+
+cached = out;
+cached_lda_dir = lda_dir;
 
 end
