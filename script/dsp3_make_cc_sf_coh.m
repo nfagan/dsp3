@@ -18,6 +18,7 @@ runner.output_directory = char( dsp3.get_intermediate_dir(output_dir, conf) );
 runner.is_parallel = params.is_parallel;
 runner.get_identifier_func = @(varargin) varargin{1}.unified_filename;
 runner.overwrite = params.overwrite;
+runner.save_func = @(filename, out) save(filename, 'out', '-v7.3');
 
 results = runner.run( @dsp3.make.cc_sfcoherence ...
   , spike_times, spike_labels, event_times, event_labels, params );
