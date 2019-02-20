@@ -68,7 +68,7 @@ for i = 1:numel(I)  % for each day x region x channel of lfp data ...
       [coh, freqs, any_non_nan] = calculate_sf_coherence( windowed_signals, spike_times_this_unit ...
         , matching_event_times, min_ts, max_ts, chronux_params );
       
-      coh_labels = make_coh_labels( matching_labels, unit_labels );
+      coh_labels = make_coh_labels( matching_labels', unit_labels );
       
       if ( params.remove_nan_trials )
         non_nan_trial = ~isnan( matching_event_times );
