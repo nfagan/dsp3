@@ -70,7 +70,7 @@ for i = 1:numel(I)  % for each day x region x channel of lfp data ...
       
       % Don't store if *all* samples are nan.
       if ( ~any_non_nan )
-        warning( 'All coherence values were nan.' );
+%         warning( 'All coherence values were nan.' );
         continue;
       end
       
@@ -95,6 +95,8 @@ out.categories = categories;
 out.unified_filename = lfp_file.unified_filename;
 
 if ( isempty(all_freqs) )
+  warning( 'All coherence values were nan.' );
+  
   out.f = [];
   out.t = [];
 else
