@@ -1,6 +1,7 @@
 function defaults = cc_sfcoherence()
 
 defaults = dsp3.get_common_make_defaults();
+defaults.remove_nan_trials = true;
 defaults.overwrite = false;
 defaults.is_parallel = true;
 defaults.config = dsp3.config.load();

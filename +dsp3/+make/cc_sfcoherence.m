@@ -68,13 +68,16 @@ for i = 1:numel(I)  % for each day x region x channel of lfp data ...
       [coh, freqs, any_non_nan] = calculate_sf_coherence( windowed_signals, spike_times_this_unit ...
         , matching_event_times, min_ts, max_ts, chronux_params );
       
-      % Don't store if *all* samples are nan.
-      if ( ~any_non_nan )
-%         warning( 'All coherence values were nan.' );
-        continue;
-      end
-      
       coh_labels = make_coh_labels( matching_labels, unit_labels );
+      
+      if ( params.remove_nan_trials )
+        non_nan_trial = ~isnan( matching_event_times );
+        non_nan_coh = ~all( all(isnan(coh), 2), 3 );
+        non_nan = non_nan_coh & non_nan_trial;
+        
+        coh = coh(non_nan, :, :);
+        keep( coh_labels, find(non_nan) );
+      end
       
       all_coh{end+1} = coh;
       all_coh_labels{end+1} = coh_labels;
