@@ -174,9 +174,11 @@ for i = 1:numel(event_times)
     min_evt = evt + look_back;
     max_evt = evt + look_ahead;
 
-    use_spikes = spike_times >= min_evt & spike_times < max_evt;
+    is_in_bounds_spike = spike_times >= min_evt & spike_times < max_evt;
+    use_spikes = spike_times(is_in_bounds_spike);
+    use_spikes = use_spikes - min_evt;
 
-    tmp_spikes.spikes = reshape( spike_times(use_spikes), [], 1 );
+    tmp_spikes.spikes = reshape( use_spikes, [], 1 );
   end
 
   if ( isempty(spikes) )
