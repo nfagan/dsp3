@@ -1,6 +1,6 @@
 function results = dsp3_make_summarized_cc_sf_coh(varargin)
 
-defaults = dsp3.get_common_make_defaults();
+defaults = dsp3.make.defaults.summarized_cc_sf_coherence();
 params = dsp3.parsestruct( defaults, varargin );
 
 epoch = params.epoch;
