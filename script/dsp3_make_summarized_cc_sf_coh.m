@@ -17,6 +17,10 @@ runner.get_identifier_func = @(varargin) varargin{1}.unified_filename;
 runner.overwrite = params.overwrite;
 runner.save_func = @(filename, out) save(filename, 'out', '-v7.3');
 
+if ( params.skip_existing )
+  runner.set_skip_existing();
+end
+
 results = runner.run( @dsp3.make.summarized_cc_sf_coherence, params );
 
 end

@@ -15,7 +15,7 @@ mean_spec = { 'channels', 'regions', 'days', 'sites' ...
 
 [new_labels, I] = keepeach( labels', mean_spec );
 
-new_data = rowop( data, I, @nanmean );
+new_data = rowop( data, I, @(x) nanmean(x, 1) );
 
 out_file = coh_file;
 out_file.params = params;
