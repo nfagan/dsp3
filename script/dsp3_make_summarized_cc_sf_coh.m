@@ -18,7 +18,7 @@ runner.overwrite = params.overwrite;
 runner.save_func = @(filename, out) save(filename, 'out', '-v7.3');
 
 if ( params.skip_existing )
-  runner.set_skip_existing();
+  runner.set_skip_existing_files();
 end
 
 results = runner.run( @dsp3.make.summarized_cc_sf_coherence, params );
