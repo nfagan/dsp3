@@ -32,7 +32,8 @@ function outs = anova1(data, labels, spec, factor, varargin)
 %         handles to functions used to summarize `data`. Default is {@mean,
 %         @median, @rows}
 %
-%     Specify `spec` as an empty cell array ({}) to avoid 
+%     Specify `spec` as an empty cell array ({}) to perform the analysis
+%     once on the whole set of `data`.
 %
 %     IN:
 %       - `data` (double)
@@ -63,6 +64,7 @@ addcat( labels, compcat );
 
 c_tbls = cell( size(I) );
 a_tbls = cell( size(I) );
+is_anova_significant = false( numel(I), 1 );
 
 for i = 1:numel(I)
   grp = removecats( categorical(labels, factor, I{i}) );
@@ -75,6 +77,7 @@ for i = 1:numel(I)
   
   a_tbls{i} = dsp3.anova_cell2table( tbl );
   c_tbls{i} = dsp3.multcompare_cell2table( sig_comparisons );
+  is_anova_significant(i) = p < alpha;
 end
 
 tblspec = csunion( spec, factor );
@@ -86,5 +89,6 @@ outs.anova_labels = alabs;
 outs.comparison_tables = c_tbls;
 outs.descriptive_tables = m_tbl;
 outs.descriptive_labels = mlabs;
+outs.is_anova_significant = is_anova_significant;
 
 end

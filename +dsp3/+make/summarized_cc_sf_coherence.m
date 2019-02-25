@@ -10,7 +10,7 @@ data = coh_file.coherence;
 
 assert_ispair( data, labels );
 
-mean_spec = { 'channels', 'regions', 'days', 'sites' ...
+mean_spec = { 'channels', 'regions', 'spike_regions', 'days', 'sites' ...
   , 'outcomes', 'blocks', 'sessions', 'trialtypes' };
 
 [new_labels, I] = keepeach( labels', mean_spec );
