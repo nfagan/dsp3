@@ -1,4 +1,4 @@
-function [data, labels] = dsp3_anatomy_xls_to_data_and_labels(xls_raw)
+function [data, labels, data_key] = dsp3_anatomy_xls_to_data_and_labels(xls_raw)
 
 header = xls_raw(1, :);
 
@@ -27,6 +27,11 @@ unit_ids = cell2mat( remainder(:, unit_inds) );
 [data, labels] = expand_unit_data( ap_data, ml_data, z_data, labs, unit_ids );
 
 assert_ispair( data, labels );
+
+data_key = containers.Map( 'keytype', 'double', 'valuetype', 'char' );
+data_key(1) = 'ap';
+data_key(2) = 'ml';
+data_key(3) = 'z';
 
 end
 

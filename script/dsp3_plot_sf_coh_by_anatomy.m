@@ -58,7 +58,7 @@ end
 path_components = { 'sf_coh_anatomy', datestr(now, 'mmddyy') };
 
 base_prefix = '';
-base_subdir = '';
+base_subdir = 'redux';
 analysis_p = char( dsp3.analysisp(path_components) );
 plot_p = char( dsp3.plotp(path_components) );
 do_save = true;
@@ -69,8 +69,10 @@ bands = dsp3.get_bands( 'map' );
 
 band_names = cssetdiff( keys(bands), 'theta' );
 pairs = { {'other', 'none'}, {'self', 'both'} };
+region_combinations = combs( coh_labels, {'regions', 'spike_regions'} );
 
-analysis_combs = dsp3.numel_combvec( band_names, pairs );
+% analysis_combs = combvec( 1:numel(band_names), 1:numel(pairs), 1:size(region_combinations, 2) );
+analysis_combs = combvec( 1:numel(band_names), 1:numel(pairs) );
 
 min_coh = -0.1;
 max_coh = 0.05;
@@ -85,6 +87,7 @@ shared_utils.general.progress( idx, size(analysis_combs, 2) );
 
 band_name = band_names{analysis_combs(1, idx)};
 pair_spec = pairs{analysis_combs(2, idx)};
+% region_combination = region_combinations(:, analysis_combs(3, idx));
 
 freq_roi = bands(band_name);
 
@@ -98,9 +101,10 @@ for i = 1:numel(unique_channel_indices)
   
   fp_channel = strrep( band_labels(chan_ind, 'channel'), 'SPK', 'FP' );
   region = band_labels(chan_ind, 'region');
+  spk_region = { sprintf('spike_%s', char(setdiff({'acc', 'bla'}, region))) };
   day = band_labels(chan_ind, 'days');
   
-  selectors = [ fp_channel, region, day ];
+  selectors = [ fp_channel, region, spk_region, day ];
   
   matching_coh = find( coh_labels, selectors );
   matches_a = find( coh_labels, pair_spec{1}, matching_coh );
@@ -112,6 +116,7 @@ for i = 1:numel(unique_channel_indices)
   per_channel_coh(chan_ind) = mean_a - mean_b;
   
   addsetcat( band_labels, 'outcome', sprintf('%s-%s', pair_spec{:}), chan_ind );
+  addsetcat( band_labels, 'spike_region', spk_region, chan_ind );
 end
 
 addsetcat( band_labels, 'band', band_name );
@@ -122,7 +127,7 @@ addsetcat( band_labels, 'band', band_name );
 
 figure1 = clf( figure(1) );
 
-plot_spec = { 'region', 'band' };
+plot_spec = { 'region', 'band', 'spike_region' };
 
 [plot_labels, plot_I] = keepeach_or_one( band_labels', plot_spec, unique_channel_indices );
 sp_shape = plotlabeled.get_subplot_shape( numel(plot_I) );
@@ -145,7 +150,7 @@ for i = 1:numel(plot_I)
 
   h = scatter3( coh_ax, xyz{:}, [], color_map(coh_bin, :), 'filled' );
   
-  plot_C = combs( band_labels, {'region', 'outcome'}, plot_I{i} );
+  plot_C = combs( band_labels, {'region', 'outcome', 'spike_region'}, plot_I{i} );
   plot_C = unique( plot_C );
   plot_C = strjoin( plot_C(:)', ' | ' );
   
@@ -169,7 +174,7 @@ shared_utils.plot.fullscreen( figure1 );
 use_data = per_channel_coh;
 use_labels = band_labels';
 
-spec = { 'region', 'outcome', 'band' };
+spec = { 'region', 'outcome', 'band', 'spike_region' };
 mask = intersect( unique_channel_indices, find(~isnan(use_data)) );
 
 anova_results = dsp3.anova1( use_data, use_labels, spec, 'cluster' ...
