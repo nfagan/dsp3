@@ -5,6 +5,7 @@ if ( nargin < 6 ), formats = { 'epsc', 'png', 'fig' }; end
 
 shared_utils.io.require_dir( p );
 fname = dsp3.prefix( prefix, dsp3.fname(labs, cats) );
+fname = strrep( fname, filesep, '_' );
 
 dsp3.savefig( f, fullfile(p, fname), formats );
 

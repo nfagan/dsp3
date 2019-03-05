@@ -1,7 +1,7 @@
 function varargout = get_bands(flag)
 
-bands = { [4, 8], [15, 25], [45, 60] };
-bandnames = { 'theta', 'beta', 'gamma' };
+bands = { [4, 8], [15, 25], [45, 60], [45, 70] };
+bandnames = { 'theta', 'beta', 'gamma', 'new_gamma' };
 
 flags = { 'map' };
 flag_str = strjoin( flags, ' | ' );

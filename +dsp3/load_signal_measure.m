@@ -17,7 +17,7 @@ defaults.is_cached = true;
 
 params = dsp3.parsestruct( defaults, varargin );
 
-if ( check_use_cached(mats) && params.is_cached )
+if ( check_use_cached(mats) && ~isempty(d) && params.is_cached )
   fprintf( '\n\n Using cached data ...' );
   data = d;
   labels = l';
@@ -57,7 +57,7 @@ for i = 1:numel(mats)
   lab = get_labels_func( meas, meas_file );
   
   if ( ~isempty(lab) )
-    setcat( addcat(lab, 'measure'), 'measure', meas_t );  
+    setcat( addcat(lab, 'measure'), 'measure', meas_t );
   end
   
   data = get_data_func( meas, meas_file );

@@ -4,6 +4,7 @@ import shared_utils.io.fullfiles;
 
 defaults = dsp3.get_behav_stats_defaults();
 defaults.do_save = true;
+defaults.is_cached = true;
 defaults.remove = {};
 defaults.smooth_func = @(x) smooth(x, 5);
 defaults.drug_type = 'nondrug';
@@ -15,9 +16,21 @@ defaults.is_post_minus_pre = false;
 defaults.specificity = 'blocks';
 defaults.measure = 'coherence';
 defaults.time_window = [-250, 0];
+defaults.freq_window = [ 45, 60 ];
 defaults.log_scale = false;
 defaults.xlims = [];
 defaults.keep_n_blocks_post = 0;
+defaults.plot_lines = true;
+defaults.lines_x = 'frequency';
+defaults.line_ylims = [];
+defaults.line_mask_inputs = {@find, 'choice'};
+defaults.plot_bar = true;
+defaults.bar_ylims = [];
+defaults.bar_mask_inputs = {@find, 'choice'};
+defaults.spectral_time_window = [-300, 300];
+defaults.spectral_freq_window = [10, 100];
+defaults.spectral_clims = [];
+defaults.stretch_spectral_ylims = false;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -31,6 +44,7 @@ is_z =        params.is_z;
 meas_t =      params.measure;
 twindow =     params.time_window;
 is_drug =     dsp3.isdrug( drug_type );
+lines_x =     validatestring( params.lines_x, {'frequency', 'time'} );
 
 if ( is_z )
   meas_types = sprintf( 'z_scored_%s', meas_t );
@@ -39,7 +53,7 @@ else
 end
 
 z_type = ternary( is_z, 'z', 'nonz' );
-load_inputs = {};
+load_inputs = { 'is_cached', params.is_cached };
 
 if ( is_z )
   p = fullfiles( conf.PATHS.dsp2_analyses, meas_types, epochs, drug_type, manips );
@@ -60,6 +74,8 @@ elseif ( strcmp(params.specificity, 'sites') )
   sitespec = csunion( dayspec, {'channels', 'regions', 'sites'} );
 elseif ( strcmp(params.specificity, 'days') )
   sitespec = csunion( dayspec, {'regions'} );
+elseif ( strcmp(params.specificity, 'trialtypes') )
+  sitespec = { 'trialtypes' };
 else
   error( 'Unrecognized specificity "%s".', params.specificity );
 end
@@ -123,20 +139,37 @@ end
 %
 %
 
-twindow = t >= params.time_window(1) & t <= params.time_window(2);
-tdim = 3;
+if ( strcmp(lines_x, 'frequency') )
+  is_within_window = t >= params.time_window(1) & t <= params.time_window(2);
+  tdim = 3;
+  
+  x_axis = freqs;
+else
+  is_within_window = freqs >= params.freq_window(1) & freqs <= params.freq_window(2);
+  tdim = 2;
+  x_axis = t;
+end
 
-tdata = squeeze( nanmean(dimref(data, twindow, tdim), tdim) );
+tdata = squeeze( nanmean(dimref(data, is_within_window, tdim), tdim) );
 
 %
 %
 %
 
-try 
-  compare_lines( tdata, labels, freqs, params );
-catch err
-  warning( err.message );
-  return
+if ( params.plot_lines )
+  try 
+    compare_lines( tdata, labels', x_axis, params );
+  catch err
+    warning( err.message );
+  end
+end
+
+if ( params.plot_bar )
+  try
+    plot_bars( data, labels', freqs, t, params )
+  catch err
+    warning( err.message );
+  end
 end
 
 %
@@ -146,7 +179,7 @@ end
 [bands, bandnames] = dsp3.get_bands();
 
 try
-  ttests( tdata, labels, freqs, bands, bandnames, params );
+  ttests( tdata, labels', freqs, bands, bandnames, params );
 catch err
   warning( err.message );
 end
@@ -158,8 +191,8 @@ function plot_spectra( data, labels, freqs, t, params )
 prefix = sprintf( '%sproanti_spectra', params.base_prefix );
 pcats = { 'outcomes', 'drugs', 'administration', 'regions' };
 
-f_ind = freqs >= 10 & freqs <= 100;
-t_ind = t >= -300 & t <= 300;
+f_ind = freqs >= params.spectral_freq_window(1) & freqs <= params.spectral_freq_window(2);
+t_ind = t >= params.spectral_time_window(1) & t <= params.spectral_time_window(2);
 
 pltfreqs = freqs( f_ind );
 labfreqs = round( flip(pltfreqs) );
@@ -168,11 +201,20 @@ pl = plotlabeled.make_spectrogram( pltfreqs, t(t_ind) );
 
 axs = pl.imagesc( data(:, f_ind, t_ind), labels, pcats );
 
-shared_utils.plot.fseries_yticks( axs, labfreqs, 5 );
+shared_utils.plot.fseries_yticks( axs, labfreqs, 2 );
 shared_utils.plot.tseries_xticks( axs, t(t_ind), 5 );
 shared_utils.plot.hold( axs );
 shared_utils.plot.add_vertical_lines( axs, find(t(t_ind) == 0) );
 shared_utils.plot.fullscreen();
+
+
+if ( ~isempty(params.spectral_clims) )
+  shared_utils.plot.set_clims( axs, params.spectral_clims );
+end
+
+if ( params.stretch_spectral_ylims )
+  stretch_spectral_ylimits( axs, flip(pltfreqs), 10, 100, true );
+end
 
 if ( params.do_save )
   dsp3.req_savefig( gcf, params.plot_p, labels, pcats, prefix )
@@ -201,6 +243,58 @@ if ( dsp3.isdrug(params.drug_type) )
   if ( params.do_save )
     dsp3.req_savefig( gcf, params.plot_p, sublabs, pcats, prefix )
   end
+end
+
+end
+
+function stretch_spectral_ylimits(axs, freqs, lim0, lim1, is_flipped)
+
+for i = 1:numel(axs)
+  ax = axs(i);
+  
+  ytick = get( ax, 'ytick' );
+  
+  xlims = get( ax, 'xlim' );
+  xtick = linspace( xlims(1), xlims(2), 5 );
+  
+  if ( numel(ytick) ~= numel(freqs) )
+    warning( 'Frequencies do not match y ticks.' );
+    continue;
+  end
+  
+  yvals = freqs(yticks);
+  
+  interval_val = abs( mean(diff(yvals)) );
+  interval_tick = abs( mean(diff(ytick)) );
+  
+  min_y = min( yvals );
+  max_y = max( yvals );
+  min_ytick = min( ytick );
+  max_ytick = max( ytick );
+  
+  offset0 = min_y - lim0;  
+  offset1 = lim1 - max_y;
+  
+  frac_offset0 = offset0 / interval_val;
+  frac_offset1 = offset1 / interval_val;
+  
+  if ( is_flipped )
+    y0 = max_ytick + frac_offset0 * interval_tick;
+    y1 = min_ytick - frac_offset1 * interval_tick;
+  else
+    y0 = min_ytick - frac_offset0 * interval_tick;
+    y1 = max_ytick + frac_offset1 * interval_tick;
+  end
+  
+  hold( ax, 'on' );
+  plot( xtick, repmat(y1, size(xtick)), 'r', 'linewidth', 2 );
+  plot( xtick, repmat(y0, size(xtick)), 'r', 'linewidth', 2 );
+  
+  ylim( ax, sort([y0, y1]) );
+  
+  set( ax, 'yticklabel', '' );
+  
+  set( ax, 'ytick', [] );
 end
 
 end
@@ -291,7 +385,7 @@ set( F, 'defaultLegendAutoUpdate', 'off' );
 is_drug = dsp3.isdrug( params.drug_type );
 per_monk = params.per_monkey;
 
-mask = find( labels, 'choice' );
+mask = fcat.mask( labels, params.line_mask_inputs{:} );
 
 [threshs, sort_ind] = sort( [0.05, 0.001], 'descend' );
 colors = { 'r', 'y' };
@@ -366,6 +460,10 @@ for i = 1:numel(p_i)
   legend( lines, glabs );
   title( ax, plabs{i} );
   
+  if ( ~isempty(params.line_ylims) )
+    ylim( ax, params.line_ylims );
+  end
+  
   axs(i) = ax;
 end
 
@@ -409,6 +507,54 @@ if ( params.do_save )
 
   dsp3.savefig( gcf, fullfile(params.plot_p, fname) );
   shared_utils.plot.fullscreen( gcf );
+end
+
+end
+
+function plot_bars(data, labels, freqs, t, params)
+
+assert( numel(freqs) == size(data, 2) );
+assert( numel(t) == size(data, 3) );
+
+is_drug = dsp3.isdrug( params.drug_type );
+
+mask = fcat.mask( labels, params.bar_mask_inputs{:} );
+
+if ( is_drug )
+  xcats = {};
+  gcats = { 'drugs' };
+  pcats = { 'trialtypes', 'outcomes', 'administration', 'measure', 'regions' };
+else
+  xcats = { 'outcomes' };
+  gcats = {};
+  pcats = { 'trialtypes', 'drugs', 'administration', 'measure', 'regions' };
+end
+
+t_ind = t >= params.time_window(1) & t <= params.time_window(2);
+f_ind = freqs >= params.freq_window(1) & freqs <= params.freq_window(2);
+
+pltlabs = prune( labels(mask) );
+pltdat = squeeze( nanmean(nanmean(data(mask, f_ind, t_ind), 2), 3) );
+
+assert_ispair( pltdat, pltlabs );
+
+pl = plotlabeled.make_common();
+
+if ( ~isempty(params.bar_ylims) )
+  pl.y_lims = params.bar_ylims;
+end
+
+axs = pl.bar( pltdat, pltlabs, xcats, gcats, pcats );
+
+if ( params.do_save )
+  shared_utils.plot.fullscreen( gcf );
+  
+  plot_p = params.plot_p;
+  pltcats = unique( cshorzcat(xcats, gcats, pcats) );
+  
+  prefix = sprintf( 'bar__%spro_anti_%s', params.base_prefix, params.measure );
+  
+  dsp3.req_savefig( gcf, plot_p, pltlabs, pltcats, prefix );
 end
 
 end
