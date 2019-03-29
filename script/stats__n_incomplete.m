@@ -15,7 +15,7 @@ end
 
 path_components = { 'behavior', dsp3.datedir, bs, drug_type, 'p_incompleted_trials' };
 
-plot_p = char( dsp3.plotp(path_components, conf) );
+params.plot_p = char( dsp3.plotp(path_components, conf) );
 
 %%
 
@@ -26,19 +26,13 @@ labs = fcat.from( consolidated.trial_data.labels );
 subsetlabs = dsp3.get_subset( labs', drug_type );
 keep( subsetlabs, findnone(subsetlabs, params.remove) );
 
+prune( subsetlabs );
+
 %%
 
-if ( hascat(subsetlabs, 'completed_trial') )
-  rmcat( subsetlabs, 'completed_trial' );
-end
+error_inds = find( subsetlabs, 'errors' );
 
-is_error = trueat( subsetlabs, find(subsetlabs, 'errors') );
-
-error_inds = find( is_error );
-no_error_inds = find( ~is_error );
-
-addcat( subsetlabs, 'completed_trial' );
-setcat( subsetlabs, 'completed_trial', 'complete', no_error_inds );
+addsetcat( subsetlabs, 'completed_trial', 'complete' );
 setcat( subsetlabs, 'completed_trial', 'incomplete', error_inds );
 
 prune( subsetlabs );
@@ -50,6 +44,36 @@ props_of = 'completed_trial';
 
 [n_complete_props, proportion_labels, prop_I] = ...
   proportions_of( subsetlabs, proportion_spec, props_of );
+
+%%
+
+plot_choice( n_complete_props, proportion_labels' );
+
+% plot_cue_and_choice_together( n_complete_props, proportion_labels', params );
+
+end
+
+function plot_choice(n_complete_props, proportion_labels)
+%%
+
+xcats = { 'contexts' };
+gcats = { 'completed_trial' };
+pcats = { 'trialtypes' };
+
+mask = fcat.mask( proportion_labels ...
+  , @find, 'complete' ...
+  , @findnot, 'errors' ...
+  , @find, 'choice' ...
+);
+
+pl = plotlabeled.make_common();
+
+axs = pl.bar( n_complete_props(mask), proportion_labels(mask) ...
+  , xcats, gcats, pcats );
+
+end
+
+function plot_cue_and_choice_together(n_complete, proportion_labels, params)
 
 %%
 
@@ -97,7 +121,7 @@ if ( params.do_save )
   pltcats = unique( cshorzcat(fcats, xcats, gcats, pcats) );
   
   for i = 1:numel(f_I)
-    dsp3.req_savefig( figs(i), plot_p, prune(pltlabels(f_I{i})), pltcats );
+    dsp3.req_savefig( figs(i), params.plot_p, prune(pltlabels(f_I{i})), pltcats );
   end
 end
 

@@ -33,6 +33,7 @@ p = dsp3.get_intermediate_dir( shared_utils.io.fullfiles(meas_types, drug_type, 
 load_inputs = { 'get_meas_func', @(meas) meas.measure, 'is_cached', params.is_cached };
 
 [data, labels, freqs, t] = dsp3.load_signal_measure( shared_utils.io.findmat(p), load_inputs{:} );
+lower( labels );
 
 dayspec = { 'administration', 'days', 'trialtypes', 'outcomes', 'epochs' };
 blockspec = csunion( dayspec, {'blocks', 'sessions'} );
@@ -103,8 +104,8 @@ f_ind = freqs >= params.freq_window(1) & freqs <= params.freq_window(2);
 cued_t_ind = t >= params.cued_time_window(1) & t <= params.cued_time_window(2);
 choice_t_ind = t >= params.choice_time_window(1) & t <= params.choice_time_window(2);
 
-is_cued = find( labels, 'targOn' );
-is_choice = find( labels, 'targAcq' );
+is_cued = find( labels, 'targon' );
+is_choice = find( labels, 'targacq' );
 
 all_data = nan( rows(data), 1 );
 all_data(is_cued) = squeeze( nanmean(nanmean(data(is_cued, f_ind, cued_t_ind), 2), 3) );

@@ -216,8 +216,10 @@ if ( params.stretch_spectral_ylims )
   stretch_spectral_ylimits( axs, flip(pltfreqs), 10, 100, true );
 end
 
+formats = { 'epsc', 'png', 'fig', 'svg' };
+
 if ( params.do_save )
-  dsp3.req_savefig( gcf, params.plot_p, labels, pcats, prefix )
+  dsp3.req_savefig( gcf, params.plot_p, labels, pcats, prefix, formats );
 end
 
 if ( dsp3.isdrug(params.drug_type) )
