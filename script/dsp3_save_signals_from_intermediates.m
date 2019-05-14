@@ -3,11 +3,10 @@ function results = dsp3_save_signals_from_intermediates(output_p, varargin)
 defaults = dsp3.get_common_make_defaults();
 defaults.config = dsp3.config.load();
 defaults.epochs = '';
+defaults.is_reference_subtracted = false;
+defaults.is_parallel = false;
 
 params = dsp3.parsestruct( defaults, varargin );
-
-runner = shared_utils.pipeline.LoopedMakeRunner;
-runner.is_parallel = false;
 
 conf = params.config;
 epochs = cellstr( params.epochs );
@@ -16,6 +15,9 @@ results = [];
 
 for i = 1:numel(epochs)
   input_id = sprintf( 'signals/none/%s', epochs{i} );
+  
+  runner = shared_utils.pipeline.LoopedMakeRunner;
+  runner.is_parallel = params.is_parallel;
 
   runner.output_directory = output_p;
   runner.get_identifier_func = @get_identifier;
@@ -39,5 +41,14 @@ function meas = get_measure(files, params, epoch)
 
 meas_file = shared_utils.general.get( files, epoch );
 meas = meas_file.measure;
+
+if ( params.is_reference_subtracted )
+  data = meas.data;
+  labels = fcat.from( meas.labels );
+  
+  [data, labels] = dsp3.ref_subtract( data, labels );
+  
+  meas = Container( data, SparseLabels.from_fcat(labels) );
+end
 
 end
