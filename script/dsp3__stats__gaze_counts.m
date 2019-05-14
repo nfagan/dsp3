@@ -47,6 +47,7 @@ spec = { 'outcomes', 'trialtypes', 'days', 'drugs' ...
 
 [plabs, I] = keepeach( uselabs', spec );
 pdat = rowop( usedat, I, @pnz );
+pdat = pdat * 100;
 
 pl = plotlabeled.make_common();
 pl.x_order = { 'self', 'both', 'other' };
@@ -63,13 +64,36 @@ pcats = { 'trialtypes' };
 
 axs = pl.errorbar( pdat(mask), plabs(mask), xcats, gcats, pcats );
 
+plt_cats = unique( cshorzcat(pcats, gcats) );
+
+dsp3.req_savefig( gcf, params.plot_p, prune(plabs(mask)), plt_cats );
+
 %%  Anova
 
 factors = { 'looks_to', 'outcomes' };
 
-anova_outs = dsp3.anovan( pdat, plabs, {}, factors, 'mask', mask );
+anova_inputs = struct();
+anova_inputs.mask = mask;
+anova_inputs.remove_nonsignificant_comparisons = false;
+anova_inputs.include_per_factor_descriptives = true;
 
-dsp3.save_anova_outputs( anova_outs, params.analysis_p, factors );
+dimensions = { 1, 2, 1:2 };
+
+for i = 1:numel(dimensions)
+  dims = dimensions{i};
+  
+  anova_inputs.dimension = dims;
+  
+  anova_outs = dsp3.anovan( pdat, plabs, {}, factors, anova_inputs );
+  save_p = fullfile( params.analysis_p, sprintf('dimension_%s', get_dimensions_str(dims)) );
+
+  dsp3.save_anova_outputs( anova_outs, save_p, factors );
+end
 
 end
 
+function str = get_dimensions_str(dims)
+
+str = strjoin( arrayfun(@num2str, dims, 'un', 0), '_' );
+
+end

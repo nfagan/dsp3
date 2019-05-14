@@ -19,5 +19,7 @@ function s = fname(labs, cats, varargin)
 
 c = combs( labs, cats, varargin{:} );
 s = fcat.trim( strjoin(unique(c), '_') );
+s = strrep( s, '/', '_' );
+s = strrep( s, '\', '_' );
 
 end

@@ -15,6 +15,14 @@ defaults.freq_window = [ 15, 25 ];
 defaults.xlims = [];
 defaults.over_frequency = true;
 defaults.keep_one_per_site = false;
+defaults.stats_time_window = [ -250, 0 ];
+defaults.take_mean_time_window_for_stats = false;
+defaults.freq_roi_name = '';
+defaults.line_evaluation = 'ttest2';
+defaults.pro_v_anti_lines_are = 'p';
+defaults.pro_v_anti_ylims = [];
+defaults.lines_v_null_ylims = [];
+defaults.make_figs = true;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -22,6 +30,7 @@ drug_type = params.drug_type;
 bsd = params.base_subdir;
 plot_spec = params.plot_spec;
 is_cued = params.is_cued;
+freq_roi_name = params.freq_roi_name;
 
 underlying_measure = validatestring( params.underlying_measure ...
   , {'coherence', 'sfcoherence'}, mfilename, 'underlying_measure' );
@@ -49,7 +58,13 @@ if ( ~strcmp(params.specificity, 'sites') && contains_fields(lda, 'channels') )
   lda('channels') = '<channels>'; 
 end
 
-path_components = { analysis_type, dsp3.datedir, bsd, underlying_measure, drug_type };
+if ( ischar(freq_roi_name) )
+  freq_p = freq_roi_name;
+else
+  freq_p = strjoin( freq_roi_name, '_' );
+end
+
+path_components = { analysis_type, dsp3.datedir, bsd, underlying_measure, drug_type, freq_p };
 
 params.plotp = char( dsp3.plotp(path_components) );
 params.analysisp = char( dsp3.analysisp(path_components) );
@@ -58,12 +73,12 @@ params.analysisp = char( dsp3.analysisp(path_components) );
 %
 %
 
-ldalabs = fcat.from( lda.labels );
+ldalabs = setdisp( fcat.from(lda.labels), 'short' );
 ldadat = lda.data * 100;  % convert to percent
 freqs = lda.frequencies;
 time = -500:50:500;
 
-if ( strcmp(params.underlying_measure, 'sfcoherence') )
+if ( strcmp(underlying_measure, 'sfcoherence') )
   renamecat( ldalabs, 'sites', 'channels' );
 end
 
@@ -81,11 +96,25 @@ if ( params.over_frequency )
 else  
   fs = params.freq_window;
   
-  f_ind = freqs >= fs(1) & freqs <= fs(2);
+  t_meaned = [];
   
-  t_meaned = squeeze( nanmean(ldadat(:, f_ind, :, :), 2) );
+  if ( ~iscell(fs) )
+    fs = { fs };
+  end
   
-  x_values = time;
+  assert( numel(fs) == numel(params.freq_roi_name), 'Rois must match band names.' ); 
+  
+  for i = 1:numel(fs)
+    f_ind = freqs >= fs{i}(1) & freqs <= fs{i}(2);
+  
+    tmp_t_meaned = squeeze( nanmean(ldadat(:, f_ind, :, :), 2) );
+    t_meaned = [ t_meaned; tmp_t_meaned ];
+  
+    x_values = time;
+  end
+  
+  addcat( ldalabs, 'band' );
+  repset( ldalabs, 'band', params.freq_roi_name );
 end
 
 nrows = size( t_meaned, 1 );
@@ -116,7 +145,19 @@ I = findall( newlabs, plot_spec );
 for i = 1:numel(I)
   shared_utils.general.progress( i, numel(I), mfilename );
   
-  compare_lines( newdat, newlabs, x_values, I{i}, params );
+  if ( params.make_figs )
+    compare_lines( newdat, newlabs', x_values, I{i}, params );
+  end
+  
+  handle_stats( newdat, newlabs', x_values, I{i}, params );
+  
+  if ( params.make_figs )
+    pro_v_anti_lines( newdat, newlabs', x_values, I{i}, params );
+  end
+  
+  if ( params.make_figs )
+    pro_minus_anti_lines( newdat, newlabs', x_values, I{i}, params );
+  end
 end
 
 end
@@ -146,6 +187,288 @@ keep( labs, to_keep );
 
 end
 
+function handle_stats(tdata, labels, x_values, mask, params)
+
+mask = findnot( labels, {'targAcq', 'cued'}, mask );
+
+test_each = { 'trialtypes', 'drugs' ...
+  , 'administration', 'contexts', 'days', 'channels', 'regions', 'band' };
+
+test_each = dsp3.nonun_or_all( labels, test_each );
+describe_each = csunion( test_each, 'measure' );
+
+[newlabs, I] = keepeach( labels', test_each, mask );
+addcat( newlabs, 'time_window' );
+
+t_window = params.stats_time_window;
+t_ind = find( x_values >= t_window(1) & x_values <= t_window(2) );
+subset_data = tdata(:, t_ind);
+
+if ( params.take_mean_time_window_for_stats )
+  subset_data = nanmean( subset_data, 2 );
+  t_ind = t_ind(1);
+end
+
+mean_subset_data = nanmean( subset_data, 2 );
+
+stat_labels = fcat();
+all_ps = [];
+
+for i = 1:numel(I)
+  real_ind = find( labels, 'real_percent', I{i} );
+  shuffled_ind = find( labels, 'shuffled_percent', I{i} );
+  
+  assert( numel(real_ind) == 100 && numel(shuffled_ind) == 100 );
+  
+  ps = zeros( numel(t_ind), 1 );
+  
+  for j = 1:numel(t_ind)
+    ct_ind = t_ind(j);
+    
+    if ( strcmp(params.line_evaluation, 'ttest2') )
+      [~, ps(j)] = ttest2( subset_data(shuffled_ind, j), subset_data(real_ind, j) );
+    elseif ( strcmp(params.line_evaluation, 'signrank') )
+      ps(j) = signrank( subset_data(shuffled_ind, j), subset_data(real_ind, j) );
+    else
+      ps(j) = nnz( subset_data(shuffled_ind, j) > subset_data(real_ind, j) ) / 100;
+    end
+    
+    time_lab = sprintf( '%dms', x_values(ct_ind) );
+    
+    setcat( newlabs, 'time_window', time_lab );
+    append( stat_labels, newlabs, i );
+  end
+  
+  ps = dsp3.fdr( ps );
+  all_ps = [ all_ps; ps ];
+end
+
+[t, rc] = tabular( stat_labels, 'time_window', {'contexts', 'regions'} );
+p_tbl = fcat.table( cellrefs(all_ps, t), rc{:} );
+
+[d_tbl, ~, d_labels] = ...
+  dsp3.descriptive_table( mean_subset_data, labels', describe_each, [], mask );
+
+context_comparison_outs = dsp3.ranksum( mean_subset_data, labels' ...
+  , setdiff(describe_each, 'contexts'), 'othernone', 'selfboth', 'mask', mask );
+
+% context_comparison_outs = dsp3.ttest2( mean_subset_data, labels' ...
+%   , setdiff(describe_each, 'contexts'), 'othernone', 'selfboth', 'mask', mask );
+
+if ( params.do_save )
+  stat_prefix = sprintf( '%s_p_values', params.line_evaluation );
+  
+  dsp3.savetbl( p_tbl, params.analysisp, stat_labels, test_each, stat_prefix );
+  dsp3.savetbl( d_tbl, params.analysisp, d_labels, describe_each, 'descriptives_' );
+  
+  comparison_p = fullfile( params.analysisp, 'compare_contexts' );
+  
+%   dsp3.save_ttest2_outputs( context_comparison_outs, comparison_p );
+  dsp3.save_ranksum_outputs( context_comparison_outs, comparison_p );
+end
+
+end
+
+function pro_minus_anti_lines(tdata, labels, x_values, mask, params)
+
+mask = fcat.mask( labels, mask ...
+  , @findnot, {'targAcq', 'cued'} ...
+  , @find, 'real_percent' ...
+);
+
+compare_each = { 'trialtypes', 'drugs' ...
+  , 'administration', 'days', 'channels', 'regions', 'measure', 'band' };
+
+I = findall( labels, compare_each, mask );
+
+pm_labs = fcat().setdisp( 'short' );
+pm_dat = [];
+
+for i = 1:numel(I)
+  on_ind = find( labels, 'othernone', I{i} );
+  sb_ind = find( labels, 'selfboth', I{i} );
+  
+  pro_minus_anti = tdata(on_ind, :) - tdata(sb_ind, :);
+  
+  pm_dat = [ pm_dat; pro_minus_anti ];
+  
+  lab_copy = labels';
+  setcat( lab_copy, 'contexts', 'pro_minus_anti' );
+  append( pm_labs, lab_copy, on_ind );
+end
+
+% addsetcat( pm_labs, 'band', params.freq_roi_name );
+
+assert_ispair( pm_dat, pm_labs );
+
+gcats = { 'measure' };
+pcats = { 'band', 'trialtypes', 'drugs' ...
+  , 'administration', 'contexts', 'days', 'channels', 'regions' };
+
+pl = plotlabeled.make_common();
+pl.x = x_values;
+
+axs = pl.lines( pm_dat, pm_labs, gcats, pcats );
+shared_utils.plot.hold( axs, 'on' );
+
+if ( numel(axs) == 1 )
+
+  if ( ~isempty(params.pro_v_anti_ylims) )
+    shared_utils.plot.set_ylims( axs, params.pro_v_anti_ylims );
+  end
+
+  ps = zeros( numel(x_values), 1 );
+  for i = 1:numel(x_values)
+    ps(i) = signrank( pm_dat(:, i) );
+  end
+  ps = dsp3.fdr( ps );
+
+  add_stars( axs, x_values, ps );
+end
+
+if ( ~isempty(params.xlims) )
+  shared_utils.plot.set_xlims( axs, params.xlims );
+end
+
+shared_utils.plot.add_horizontal_lines( axs, 0 );
+shared_utils.plot.add_vertical_lines( axs, 50 );
+
+if ( params.do_save )
+  use_plot_p = fullfile( params.plotp, 'pro_minus_anti_lines' );
+  
+  dsp3.req_savefig( gcf, use_plot_p, pm_labs, pcats );
+end
+
+%%
+
+stats_t_window = params.stats_time_window;
+stats_t_ind = x_values >= stats_t_window(1) & x_values <= stats_t_window(2);
+
+mean_stats = nanmean( pm_dat(:, stats_t_ind), 2 );
+
+sr_spec = setdiff( compare_each, {'band', 'regions'} );
+sr_labs = add_target_region_band_labels( pm_labs' );
+
+signrank_outs = dsp3.signrank2( mean_stats, sr_labs', sr_spec, 'beta_region', 'gamma_region' );
+
+end
+
+function labels = add_target_region_band_labels(labels)
+
+beta_blas_accf = find( labels, {'beta', 'bla_spike_acc_field'} );
+gamma_accs_blaf = find( labels, {'new_gamma', 'acc_spike_bla_field'} );
+
+if ( isempty(beta_blas_accf) || isempty(gamma_accs_blaf) )
+  warning( 'No rows matched target region-band' );
+end
+
+addcat( labels, 'band_region' );
+setcat( labels, 'band_region', 'beta_region', beta_blas_accf );
+setcat( labels, 'band_region', 'gamma_region', gamma_accs_blaf );
+
+end
+
+function add_stars(ax, xs, ps)
+
+y_max = max( get(ax, 'ylim') );
+
+threshs = [0.05, 0.001, 0.0001];
+colors = { 'y', 'g', 'r' };
+
+for i = 1:numel(ps)
+  
+  if ( ps(i) > threshs(1) ), continue; end
+  
+  ind = 2;
+  
+  while ( ind <= numel(threshs) && ps(i) < threshs(ind) )
+    ind = ind + 1;
+  end
+  
+  plot( xs(i), y_max, sprintf('%s*', colors{ind-1}) );
+end
+
+end
+
+function pro_v_anti_lines(tdata, labels, x_values, mask, params)
+
+% context_comparison_outs = dsp3.signrank2( mean_subset_data, labels' ...
+%   , setdiff(describe_each, 'contexts'), 'othernone', 'selfboth', 'mask', mask );
+
+mask = findnot( labels, {'targAcq', 'cued'}, mask );
+
+compare_each = { 'trialtypes', 'drugs' ...
+  , 'administration', 'days', 'channels', 'regions', 'measure' };
+
+[compare_labs, compare_I] = keepeach( labels', compare_each ...
+  , find(labels, 'real_percent', mask) );
+
+ps = zeros( numel(compare_I), 1 );
+errs = nan( size(ps) );
+
+comparison_kind = validatestring( params.pro_v_anti_lines_are ...
+  , {'p', 'pro_minus_anti'} );
+
+for i = 1:numel(compare_I)
+  selfboth_ind = find( labels, 'selfboth', compare_I{i} );
+  othernone_ind = find( labels, 'othernone', compare_I{i} );
+  
+  for j = 1:numel(x_values)
+    sb_data = tdata(selfboth_ind, j);
+    on_data = tdata(othernone_ind, j);
+    
+    if ( strcmp(comparison_kind, 'p' ) )
+      ps(i, j) = signrank( sb_data, on_data );
+    else
+      assert( strcmp(comparison_kind, 'pro_minus_anti') );
+      
+      pro_minus_anti = on_data - sb_data;
+      
+      ps(i, j) = nanmean( pro_minus_anti );
+      errs(i, j) = plotlabeled.nansem( pro_minus_anti );
+    end
+  end
+  
+  if ( strcmp(comparison_kind, 'p') )
+    ps(i, :) = dsp3.fdr( ps(i, :) );
+  end
+end
+
+setcat( compare_labs, 'measure', 'p value' );
+% addsetcat( compare_labs, 'band', params.freq_roi_name );
+
+gcats = { 'measure' };
+pcats = { 'band', 'trialtypes', 'drugs' ...
+  , 'administration', 'contexts', 'days', 'channels', 'regions' };
+
+pl = plotlabeled.make_common();
+pl.x = x_values;
+
+axs = pl.lines( ps, compare_labs, gcats, pcats );
+
+if ( ~isempty(params.xlims) )
+  shared_utils.plot.set_xlims( axs, params.xlims );
+end
+
+if ( ~isempty(params.pro_v_anti_ylims) )
+  shared_utils.plot.set_ylims( axs, params.pro_v_anti_ylims );
+end
+
+if ( strcmp(comparison_kind, 'p') )
+  arrayfun( @(x) set(x, 'yscale', 'log'), axs );
+else
+  shared_utils.plot.hold( axs, 'on' );
+  shared_utils.plot.add_horizontal_lines( axs, 0 );
+end
+
+if ( params.do_save )
+  use_plot_p = fullfile( params.plotp, sprintf('%s_lines', comparison_kind) );
+  
+  dsp3.req_savefig( gcf, use_plot_p, compare_labs, pcats );
+end
+
+end
+
 function compare_lines( tdata, labels, x_values, basemask, params )
 
 F = figure(1);
@@ -162,7 +485,7 @@ assert( numel(colors) == numel(threshs) );
 
 gcats = { 'measure' };
 pcats = { 'trialtypes', 'drugs' ...
-  , 'administration', 'contexts', 'days', 'channels', 'regions' };
+  , 'administration', 'contexts', 'days', 'channels', 'regions', 'band' };
 
 pcats = dsp3.nonun_or_all( labels, pcats );
 
@@ -194,7 +517,21 @@ for i = 1:numel(p_i)
   ps = zeros( 1, n_freqs );
   
   for j = 1:n_freqs  
-    [~, ps(j)] = ttest2( dimref(first, j, 2), dimref(sec, j, 2) );
+    if ( strcmp(params.line_evaluation, 'ttest2') )
+      [~, ps(j)] = ttest2( dimref(first, j, 2), dimref(sec, j, 2) );
+    elseif ( strcmp(params.line_evaluation, 'signrank') )
+      ps(j) = signrank( dimref(first, j, 2), dimref(sec, j, 2) );
+    else
+      assert( strcmp(params.line_evaluation, 'perm') ...
+        , 'Unrecognized line_evaluation "%s".', params.line_evaluation );
+      
+      is_real = cellfun( @(x) ~isempty(strfind(x, 'real')), g_c );
+      
+      real_dat = tdata(g_i{is_real}, :);
+      shuff_dat = tdata(g_i{~is_real}, :);
+      
+      ps(j) = nnz( real_dat(:, j) < shuff_dat(:, j) ) / rows( shuff_dat );
+    end
   end
   
   all_ps{i} = dsp3.fdr( ps );
@@ -235,6 +572,10 @@ if ( ~isempty(params.xlims) )
   shared_utils.plot.set_xlims( axs, params.xlims );
 end
 
+if ( ~isempty(params.lines_v_null_ylims) )
+  shared_utils.plot.set_ylims( axs, params.lines_v_null_ylims );
+end
+
 % arrayfun( @(x) set(x, 'ylim', [-0.15, 0.15]), axs );
 
 markersize = 8;
@@ -257,13 +598,15 @@ end
 shared_utils.plot.add_horizontal_lines( axs, 50 );
 
 if ( do_save )
+  use_plot_p = fullfile( params.plotp, 'lines_vs_null' );
+  
   prefix = 'pro_anti_coh';
-  shared_utils.io.require_dir( params.plotp );
+  shared_utils.io.require_dir( use_plot_p );
   
   fname = dsp3.fname( newlabs, csunion(pcats, 'channels') );
   fname = dsp3.prefix( prefix, fname );
 
-  dsp3.savefig( gcf, fullfile(params.plotp, fname) );
+  dsp3.savefig( gcf, fullfile(use_plot_p, fname) );
 end
 
 end

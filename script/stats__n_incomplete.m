@@ -21,9 +21,17 @@ params.plot_p = char( dsp3.plotp(path_components, conf) );
 
 labs = fcat.from( consolidated.trial_data.labels );
 
+event_labels = fcat.from( consolidated.events.labels );
+event_key = consolidated.event_key;
+events = consolidated.events.data;
+
+is_choice_error = dsp3.is_choice_error( events, event_labels, event_key );
+
+dsp3.label_error_types( labs, is_choice_error );
+
 %%
 
-subsetlabs = dsp3.get_subset( labs', drug_type );
+[subsetlabs] = dsp3.get_subset( labs', drug_type );
 keep( subsetlabs, findnone(subsetlabs, params.remove) );
 
 prune( subsetlabs );
@@ -42,18 +50,43 @@ prune( subsetlabs );
 proportion_spec = { 'days', 'contexts', 'administration' };
 props_of = 'completed_trial';
 
+prop_mask = findnone( subsetlabs, 'init_error' );
+
 [n_complete_props, proportion_labels, prop_I] = ...
-  proportions_of( subsetlabs, proportion_spec, props_of );
+  proportions_of( subsetlabs, proportion_spec, props_of, prop_mask );
 
 %%
 
-plot_choice( n_complete_props, proportion_labels' );
+analysis_complete( subsetlabs' );
+plot_choice( n_complete_props, proportion_labels', params );
 
 % plot_cue_and_choice_together( n_complete_props, proportion_labels', params );
 
 end
 
-function plot_choice(n_complete_props, proportion_labels)
+function analysis_complete(subsetlabs)
+
+%%  N complete per sessions
+
+monk_spec = { 'monkeys' };
+
+complete_each = { 'days' };
+
+mask = fcat.mask( subsetlabs ...
+  , @findnone, 'errors' ...
+);
+
+[complete_labs, complete_I] = keepeach( subsetlabs', complete_each, mask );
+
+trial_counts = cellfun( @numel, complete_I );
+
+[mean_labs, mean_I] = keepeach_or_one( complete_labs', monk_spec );
+
+trial_table = dsp3.descriptive_table( trial_counts, complete_labs', monk_spec );
+
+end
+
+function plot_choice(n_complete_props, proportion_labels, params)
 %%
 
 xcats = { 'contexts' };
@@ -67,9 +100,16 @@ mask = fcat.mask( proportion_labels ...
 );
 
 pl = plotlabeled.make_common();
+pl.add_points = true;
 
 axs = pl.bar( n_complete_props(mask), proportion_labels(mask) ...
   , xcats, gcats, pcats );
+
+if ( params.do_save )
+  pltcats = unique( cshorzcat(gcats, pcats) );
+  
+  dsp3.req_savefig( gcf, params.plot_p, prune(proportion_labels(mask)), pltcats );
+end
 
 end
 

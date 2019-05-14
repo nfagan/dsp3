@@ -174,6 +174,24 @@ if ( do_save )
   end
 end
 
+%%  rank sum received vs. forgone
+
+usedat = subsetrt;
+uselabs = subsetlabs';
+usespec = cssetdiff( spec, {'days', 'outcomes'} );
+
+mask = fcat.mask( uselabs, @find, 'choice', @findnone, 'errors' );
+
+received_ind = find( uselabs, {'self', 'both'} );
+forgone_ind = find( uselabs, {'other', 'none'} );
+
+setcat( uselabs, 'outcomes', 'received', received_ind );
+setcat( uselabs, 'outcomes', 'forgone', forgone_ind );
+
+outs = dsp3.ranksum( usedat, uselabs', usespec, 'received', 'forgone' ...
+  , 'mask', mask ...
+);
+
 %%
 
 prefix = 'rt';

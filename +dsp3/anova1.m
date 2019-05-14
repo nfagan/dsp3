@@ -50,6 +50,7 @@ defaults.mask = rowmask( data );
 defaults.comparison_category = 'comparison';
 defaults.alpha = 0.05;
 defaults.descriptive_funcs = dsp3.descriptive_funcs();
+defaults.remove_nonsignificant_comparisons = true;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -72,11 +73,13 @@ for i = 1:numel(I)
   [p, tbl, stats] = anova1( data(I{i}), grp, 'off' );
   [cc, c] = dsp3.multcompare( stats );
   
-  issig = c(:, end) < alpha;
-  sig_comparisons = cc(issig, :);
+  if ( params.remove_nonsignificant_comparisons )
+    issig = c(:, end) < alpha;
+    cc = cc(issig, :);
+  end
   
   a_tbls{i} = dsp3.anova_cell2table( tbl );
-  c_tbls{i} = dsp3.multcompare_cell2table( sig_comparisons );
+  c_tbls{i} = dsp3.multcompare_cell2table( cc );
   is_anova_significant(i) = p < alpha;
 end
 

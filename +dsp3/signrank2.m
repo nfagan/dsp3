@@ -1,9 +1,9 @@
-function outs = ttest2(data, labels, spec, a, b, varargin)
+function outs = signrank2(data, labels, spec, a, b, varargin)
 
-%   TTEST2 -- Run 2-sample t-test, for each subset.
+%   SIGNRANK2 -- Run 2-sample t-test, for each subset.
 %
-%     outs = ... ttest2( data, labels, spec, a, b ) runs a
-%     2-sample t-test for the mean differences between data identified by
+%     outs = ... signrank2( data, labels, spec, a, b ) runs a
+%     paired signed rank test for equal medians between data identified by
 %     label(s) `a` and `b`, for each subset of `data` identified by a 
 %     combination of labels in `spec` categories. `labels` is an fcat
 %     object with the same number of rows as `data`. `outs` is a struct
@@ -51,7 +51,6 @@ function outs = ttest2(data, labels, spec, a, b, varargin)
 defaults.mask = rowmask( data );
 defaults.descriptive_funcs = dsp3.descriptive_funcs();
 defaults.test_category = NaN;
-defaults.ttest2_inputs = {};
 defaults.allow_missing_labels = false;
 
 params = dsp3.parsestruct( defaults, varargin );
@@ -59,7 +58,6 @@ params = dsp3.parsestruct( defaults, varargin );
 mask = params.mask;
 funcs = params.descriptive_funcs;
 testcat = params.test_category;
-ttest2_inputs = params.ttest2_inputs;
 
 [tlabs, I] = dsp3.keepeach_or_one( labels', spec, mask );
 
@@ -67,17 +65,17 @@ if ( ~params.allow_missing_labels )
   assert_haslab( labels, csunion(a, b) );
 end
 
-t_tbls = cell( size(I) );
+sr_tbls = cell( size(I) );
 
 for i = 1:numel(I)
   ind_a = find( labels, a, I{i} );
   ind_b = find( labels, b, I{i} );
   
-  [~, p, ~, stats] = ttest2( rowref(data, ind_a), rowref(data, ind_b), ttest2_inputs{:} );
+  [p, ~, stats] = signrank( rowref(data, ind_a), rowref(data, ind_b) );
   
   stats.p = p;
   
-  t_tbls{i} = struct2table( stats );
+  sr_tbls{i} = struct2table( stats );
 end
 
 desc_spec = spec;
@@ -90,8 +88,8 @@ end
 
 [m_tbl, ~, mlabs] = dsp3.descriptive_table( data, labels', desc_spec, funcs, mask );
 
-outs.t_tables = t_tbls;
-outs.t_labels = tlabs;
+outs.sr_tables = sr_tbls;
+outs.sr_labels = tlabs;
 outs.descriptive_tables = m_tbl;
 outs.descriptive_labels = mlabs;
 outs.descriptive_specificity = desc_spec;

@@ -55,6 +55,8 @@ defaults.alpha = 0.05;
 defaults.descriptive_funcs = dsp3.descriptive_funcs();
 defaults.anovan_inputs = { 'display', 'off', 'varnames', factors, 'model', 'full' };
 defaults.dimension = 'auto';
+defaults.remove_nonsignificant_comparisons = true;
+defaults.include_per_factor_descriptives = false;
 
 params = dsp3.parsestruct( defaults, varargin );
 validate_params( params );
@@ -82,28 +84,52 @@ for i = 1:numel(I)
   
   if ( strcmp(dim, 'auto') )
     sig_dims = find( p < alpha );
-    sig_dims(sig_dims > numel(factors)) = [];
+    
+    if ( numel(factors) == 2 && any(sig_dims == 2) )
+      sig_dims = 1:2;
+    else
+      sig_dims(sig_dims > numel(factors)) = [];
+    end
   else
     sig_dims = dim;
   end
   
   a_tbls{i} = dsp3.anova_cell2table( tbl );
   
-  if ( isempty(sig_dims) )
+  if ( isempty(sig_dims) && params.remove_nonsignificant_comparisons )
     continue;
   end
   
   [cc, c] = dsp3.multcompare( stats, 'dimension', sig_dims );
   
   issig = c(:, end) < alpha;
-  sig_comparisons = cc(issig, :);
   
-  c_tbls{i} = dsp3.multcompare_cell2table( sig_comparisons );
+  if ( params.remove_nonsignificant_comparisons )
+    use_comparisons = cc(issig, :);
+  else
+    use_comparisons = cc;
+  end
+  
+  c_tbls{i} = dsp3.multcompare_cell2table( use_comparisons );
 end
 
 tblspec = csunion( spec, factors );
 
 [m_tbl, ~, mlabs] = dsp3.descriptive_table( data, labels', tblspec, funcs, mask );
+
+if ( params.include_per_factor_descriptives )
+  m_tbl = { m_tbl };
+  mlabs = { mlabs };
+  
+  for i = 1:numel(factors)
+    use_spec = csunion( spec, factors{i} );
+    
+    [d_tbl, ~, dlabs] = dsp3.descriptive_table( data, labels', use_spec, funcs, mask );
+    
+    m_tbl{end+1, 1} = d_tbl;
+    mlabs{end+1, 1} = dlabs;
+  end
+end
 
 outs.anova_tables = a_tbls;
 outs.anova_labels = alabs;

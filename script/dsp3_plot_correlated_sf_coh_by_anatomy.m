@@ -1,9 +1,12 @@
-function dsp3_plot_correlated_sf_coh_by_anatomy(varargin)
+function corr_outs = dsp3_plot_correlated_sf_coh_by_anatomy(varargin)
 
 defaults = struct();
 defaults.is_cached = true;
 defaults.save_plots = true;
 defaults.config = dsp3.config.load();
+defaults.correlation_type = 'pearson';
+defaults.base_subdir = '';
+defaults.post_hoc_correction_func = @fdr_post_hoc_correct;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -80,7 +83,8 @@ to_corr_mask = fcat.mask( to_corr_labels ...
 
 corr_each = { 'bands', 'outcomes', 'spike_regions', 'regions', 'trialtypes' };
 
-corr_outs = correlate_coherence_anatomy( to_corr_coh, to_corr_anatomy, to_corr_labels', corr_each, anatomy_key, to_corr_mask );
+corr_outs = correlate_coherence_anatomy( to_corr_coh, to_corr_anatomy ...
+  , to_corr_labels', corr_each, anatomy_key, to_corr_mask, params );
 
 %%  plot
 
@@ -95,7 +99,7 @@ do_save = params.save_plots;
 conf = params.config;
 
 base_plot_p = char( dsp3.plotp({'sf_coh_anatomy', 'correlations', datestr(now, 'mmddyy')}, conf) );
-base_subdir = '1';
+base_subdir = params.base_subdir;
 
 corr_data = corr_outs.corr_data;
 corr_labels = corr_outs.corr_labels';
@@ -184,7 +188,8 @@ end
 
 end
 
-function outs = correlate_coherence_anatomy(to_corr_coh, to_corr_anatomy, to_corr_labels, corr_each, anatomy_key, corr_mask)
+function outs = correlate_coherence_anatomy(to_corr_coh, to_corr_anatomy ...
+  , to_corr_labels, corr_each, anatomy_key, corr_mask, params)
 
 anatomy_dim_indices = keys( anatomy_key );
 
@@ -207,7 +212,7 @@ for i = 1:numel(anatomy_dim_indices)
     
     is_non_nan = ~isnan( X ) & ~isnan( Y );
     
-    [r, p] = corr( X(is_non_nan), Y(is_non_nan) );
+    [r, p] = corr( X(is_non_nan), Y(is_non_nan), 'type', params.correlation_type );
     
     all_corr_data = [ all_corr_data; [r, p] ];
     all_I{end+1, 1} = corr_I{j};
@@ -219,6 +224,8 @@ for i = 1:numel(anatomy_dim_indices)
   append( all_corr_labels, corr_labels );
 end
 
+[all_corr_data, all_corr_labels] = params.post_hoc_correction_func( all_corr_data, all_corr_labels' );
+
 outs = struct();
 outs.corr_data = all_corr_data;
 outs.corr_labels = all_corr_labels;
@@ -226,6 +233,21 @@ outs.corr_I = all_I;
 outs.line_coeffs = all_coeffs;
 outs.anatomy_dimension_indices = all_anatomy_dim_indices;
 
+end
+
+function [corr_data, corr_labels] = fdr_post_hoc_correct(corr_data, corr_labels)
+
+I = findall( corr_labels, {'bands', 'spike_regions', 'outcomes'} );
+
+for i = 1:numel(I)
+  ps = corr_data(I{i}, 2);
+  corr_data(I{i}, 2) = dsp3.fdr( ps );
+end
+
+end
+
+function [corr_data, corr_labels] = default_post_hoc_correct_func(corr_data, corr_labels)
+% No correction
 end
 
 function [matched, missing_coh] = match_anatomy_to_coherence(anatomy, anatomy_labels, coh_labels)
