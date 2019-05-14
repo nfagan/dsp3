@@ -22,8 +22,6 @@ p_kept = [];
 n_kept = [];
 kept_labs = fcat();
 
-tic;
-
 for i = 1:numel(cond_I)
   [day_labs, day_I, day_C] = keepeach( combined_events.labels', 'days', cond_I{i} );  
   
@@ -49,7 +47,5 @@ for i = 1:numel(cond_I)
     append1( kept_labs, combined_events.labels, day_I{j}, numel(unit_I) );
   end
 end
-
-toc;
 
 
