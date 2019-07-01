@@ -7,11 +7,11 @@ sta_labs = fcat.from( sta_lfp_file.save_labs );
 
 %%
 
-filtered_lfp = dsp3.zpfilter( sta_lfp, 15, 25, 1e3, 3 );
+filtered_lfp = dsp3.zpfilter( sta_lfp, 3, 90, 1e3, 3 );
 
 %%
 
-base_subdir = 'beta_collapsed';
+base_subdir = '3_90_collapsed';
 
 plot_p = fullfile( dsp3.dataroot, 'plots', 'sta', 'traces', dsp3.datedir, base_subdir );
 
