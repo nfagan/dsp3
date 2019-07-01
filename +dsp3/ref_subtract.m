@@ -43,7 +43,7 @@ end
 
 prune( newlabels );
 
-assert( nnz(isnan(newdata)) == 0, 'Some trials were not subtracted.' );
+% assert( nnz(isnan(newdata)) == 0, 'Some trials were not subtracted.' );
 assert_ispair( newdata, newlabels );
 
 end

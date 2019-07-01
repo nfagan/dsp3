@@ -118,6 +118,7 @@ for i = 1:num_channels
     evt = plex_events(j);
 
     if ( isnan(evt) )
+      stp = stp + 1;
       continue;
     end
     
