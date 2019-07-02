@@ -19,5 +19,7 @@ runner.get_identifier_func = @(varargin) varargin{1}.src_filename;
 runner.get_filename_func = @(varargin) strrep(varargin{1}, '.pl2', '.mat');
 runner.input_directories = dsp3.get_intermediate_dir( inputs, conf );
 runner.output_directory = char( dsp3.get_intermediate_dir(output, conf) );
+runner.filter_files_func = ...
+  @(files) shared_utils.io.filter_files( files, params.files_containing, params.files_not_containing );
 
 end

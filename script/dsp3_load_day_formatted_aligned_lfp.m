@@ -3,6 +3,8 @@ function out = dsp3_load_day_formatted_aligned_lfp(event_name, varargin)
 defaults = dsp3.get_common_make_defaults();
 defaults.is_parallel = true;
 defaults.config = dsp3.config.load();
+defaults.include_data = true;
+
 params = dsp3.parsestruct( defaults, varargin );
 
 conf = params.config;
@@ -23,6 +25,7 @@ outputs = [ results([results.success]).output ];
 
 data = vertcat( outputs.data );
 labels = vertcat( fcat, outputs.labels );
+has_partial_data = vertcat( outputs.has_partial_data );
 
 out = struct();
 out.data = data;
@@ -32,6 +35,7 @@ out.start = outputs(1).start;
 out.stop = outputs(1).stop;
 out.step_size = outputs(1).step_size;
 out.window_size = outputs(1).window_size;
+out.has_partial_data = has_partial_data;
 
 end
 
@@ -45,7 +49,14 @@ outs.start = round( event_file.params.min_t * event_file.sample_rate );
 outs.stop = round( event_file.params.max_t * event_file.sample_rate );
 outs.step_size = nan;
 outs.window_size = round( event_file.params.window_size * event_file.sample_rate );
-outs.data = event_file.data;
+
+if ( params.include_data )
+  outs.data = event_file.data;
+else
+  outs.data = [];
+end
+
+outs.has_partial_data = event_file.has_partial_data;
 outs.labels = event_file.labels;
 
 end

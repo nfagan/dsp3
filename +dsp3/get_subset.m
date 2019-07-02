@@ -58,8 +58,10 @@ switch ( kind )
     
     keep( labs, I );
     
-    setcat( labs, 'administration', 'pre' );
-    setcat( labs, 'drugs', makecollapsed(labs, 'drugs') );
+    if ( ~isempty(labs) )
+      setcat( labs, 'administration', 'pre' );
+      setcat( labs, 'drugs', makecollapsed(labs, 'drugs') );
+    end
   case 'drug'
     %
     % regular drug

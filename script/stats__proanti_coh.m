@@ -31,6 +31,7 @@ defaults.spectral_time_window = [-300, 300];
 defaults.spectral_freq_window = [10, 100];
 defaults.spectral_clims = [];
 defaults.stretch_spectral_ylims = false;
+defaults.load_func = @default_load_func;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -94,7 +95,7 @@ mats = shared_utils.io.find( p, '.mat' );
 %
 %
 
-[data, labels, freqs, t] = dsp3.load_signal_measure( mats, load_inputs{:} );
+[data, labels, freqs, t] = params.load_func( params, mats, load_inputs{:} );
 
 if ( params.keep_n_blocks_post )
   [data, labels] = keep_n_blocks_post( data, labels', params.keep_n_blocks_post );
@@ -183,6 +184,12 @@ try
 catch err
   warning( err.message );
 end
+
+end
+
+function [data, labels, freqs, t] = default_load_func(params, mats, varargin)
+
+[data, labels, freqs, t] = dsp3.load_signal_measure( mats, varargin{:} );
 
 end
 

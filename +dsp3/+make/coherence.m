@@ -6,6 +6,8 @@ defaults.step_size = 0.05;
 params = dsp3.parsestruct( defaults, varargin );
 
 lfp_file = shared_utils.general.get( files, event_name );
+lfp_file = params.transform_func( lfp_file );
+
 data = lfp_file.data;
 
 labels = lfp_file.labels';
@@ -73,6 +75,7 @@ prune( coh_labels );
 
 out = struct();
 out.params = params;
+out.src_filename = lfp_file.src_filename;
 out.data = coh;
 out.labels = coh_labels;
 out.t = time_series;

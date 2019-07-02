@@ -1,4 +1,7 @@
-function dsp3_save_day_formatted_aligned_lfp(out, event_name, conf)
+function dsp3_save_day_formatted_aligned_lfp(out, event_name, conf, varargin)
+
+defaults = dsp3.get_common_lfp_defaults();
+params = dsp3.parsestruct( defaults, varargin );
 
 output_directory = fullfile( dsp3.dataroot(conf), 'analyses', 'reprocessed_signals', event_name );
 shared_utils.io.require_dir( output_directory );
@@ -13,6 +16,17 @@ for i = 1:numel(day_I)
   
   tmp_dat = data(day_I{i}, :);
   tmp_labs = prune( labels(day_I{i}) );
+  
+  if ( hascat(tmp_labs, 'region') )
+    renamecat( tmp_labs, 'region', 'regions' );
+  end
+  
+  if ( hascat(tmp_labs, 'channel') )
+    renamecat( tmp_labs, 'channel', 'channels' );
+  end
+  
+  [tmp_dat, tmp_labs] = dsp3.ref_subtract( tmp_dat, tmp_labs );
+  tmp_dat = dsp3.zpfilter( tmp_dat, params.f1, params.f2, params.sample_rate, params.filter_order );
   
   cont = Container( tmp_dat, SparseLabels.from_fcat(tmp_labs) );
   cont = SignalContainer( cont );

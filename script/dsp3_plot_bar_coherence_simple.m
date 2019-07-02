@@ -20,6 +20,7 @@ defaults.bar_ylims = [];
 defaults.freq_roi_name = '';
 defaults.add_bar_points = false;
 defaults.bar_plot_type = 'bar';
+defaults.load_func = @default_load_func;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -30,12 +31,7 @@ meas_t = cellstr( params.measure );
 spec_type = char( params.specificity );
 base_subdir = params.base_subdir;
 
-meas_types = cellfun( @(x) sprintf('at_%s', x), meas_t, 'un', 0 );
-
-p = dsp3.get_intermediate_dir( shared_utils.io.fullfiles(meas_types, drug_type, epochs), conf );
-load_inputs = { 'get_meas_func', @(meas) meas.measure, 'is_cached', params.is_cached };
-
-[data, labels, freqs, t] = dsp3.load_signal_measure( shared_utils.io.findmat(p), load_inputs{:} );
+[data, labels, freqs, t] = params.load_func( params );
 lower( labels );
 
 dayspec = { 'administration', 'days', 'trialtypes', 'outcomes', 'epochs' };
@@ -78,6 +74,21 @@ data = indexpair( data, labels, findnone(labels, params.remove) );
 
 plot_lines( data, labels', freqs, t, params );
 plot_bars( data, labels', freqs, t, params );
+
+end
+
+function [data, labels, freqs, t] = default_load_func(params)
+
+epochs = params.epochs;
+drug_type = params.drug_type;
+meas_t = cellstr( params.measure );
+
+meas_types = cellfun( @(x) sprintf('at_%s', x), meas_t, 'un', 0 );
+
+p = dsp3.get_intermediate_dir( shared_utils.io.fullfiles(meas_types, drug_type, epochs), conf );
+load_inputs = { 'get_meas_func', @(meas) meas.measure, 'is_cached', params.is_cached };
+
+[data, labels, freqs, t] = dsp3.load_signal_measure( shared_utils.io.findmat(p), load_inputs{:} );
 
 end
 

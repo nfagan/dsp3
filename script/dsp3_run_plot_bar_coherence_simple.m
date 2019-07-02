@@ -8,14 +8,17 @@ cued_time_window = [ 50, 150 ];
 choice_time_window = [ -50, 50 ];
 
 rev_t = 'orig';
-base_subdir = 'choice_on0';
+base_subdir = 'choice_on0_new_data';
 
 band_names = { 'new_gamma', 'beta' };
-pro_minus_antis = [false, true];
+pro_minus_antis = false;
+% pro_minus_antis = [false, true];
 % plot_function_types = { 'box', 'violin', 'bar' };
 plot_function_types = { 'box' };
 
 use_custom_limits = false;
+
+is_new_data = true;
 
 C = dsp3.numel_combvec( band_names, pro_minus_antis, plot_function_types );
 
@@ -47,6 +50,12 @@ for i = 1:size(C, 2)
   if ( ~use_custom_limits )
     bar_ylims = [];
   end
+  
+  if ( is_new_data )
+    load_func_inputs = { 'load_func', @(params) load_new_data(params, epochs) };
+  else
+    load_func_inputs = {};
+  end
 
   dsp3_plot_bar_coherence_simple( ...
       'epochs', epochs ...
@@ -64,7 +73,25 @@ for i = 1:size(C, 2)
     , 'choice_time_window', choice_time_window ...
     , 'add_bar_points', true ...
     , 'bar_plot_type', plot_function_type ...
+    , load_func_inputs{:} ...
   );
 end
+
+end
+
+function [data, labels, freqs, t] = load_new_data(params, epochs)
+
+import shared_utils.io.fullfiles;
+
+file_ps = dsp3.get_intermediate_dir( fullfiles('original_summarized_coherence', epochs), params.config );
+mats = shared_utils.io.findmat( file_ps );
+
+[data, labels, freqs, t] = bfw.load_time_frequency_measure( mats ...
+  , 'get_labels_func', @(file) file.labels ...
+);
+
+t = t * 1e3;
+
+addcat( labels, 'measure' );
 
 end
