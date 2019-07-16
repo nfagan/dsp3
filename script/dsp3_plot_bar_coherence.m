@@ -2,7 +2,7 @@ function dsp3_plot_bar_coherence()
 
 rev_types = dsp3.get_rev_types();
 
-is_new_data = false;
+is_new_data = true;
 
 if ( is_new_data )
   load_func_inputs = { 'load_func', @load_new_data };
@@ -15,23 +15,32 @@ end
 rev_t = 'orig';
 bands = dsp3.get_bands( 'map' );
 
-for i = 2
+epochs = { 'targon', 'targacq' };
+band_names = { 'beta', 'new_gamma' };
+cond_combs = dsp3.numel_combvec( epochs, band_names );
+
+for i = 1:size(cond_combs, 2)
   
 base_subdir = '';
-  
-if ( i == 1 )
-  epoch = 'targon';
-  mask_inputs = {@find, 'cued'};
-  t_window = [0, 250];
-else
-  epoch = 'targacq';
-  mask_inputs = {@find, 'choice'};
-  t_window = [-250, 0];
+
+c = cond_combs(:, i);
+
+epoch = epochs{c(1)};
+freq_roi = band_names{c(2)};
+
+switch ( epoch )
+  case 'targon'
+    mask_inputs = {@find, 'cued'};
+    t_window = [0, 250];
+  case 'targacq'
+    mask_inputs = {@find, 'choice'};
+    t_window = [-250, 0];
+  otherwise
+    error( 'Unrecognized epoch "%s".', epoch );
 end
 
 bar_ylims = [ -14e-3, 6e-3 ];
 
-freq_roi = 'beta';
 freq_window = bands(freq_roi);
 
 base_prefix = sprintf( '%s__%s', freq_roi, epoch );
@@ -50,6 +59,7 @@ stats__proanti_coh( ...
   , 'base_subdir', base_subdir ...
   , 'remove', rev_types(rev_t) ...
   , 'bar_mask_inputs', mask_inputs ...
+  , 'line_mask_inputs', mask_inputs ...
   , 'base_prefix', base_prefix ...
   , 'time_window', t_window ...
   , 'freq_window', freq_window ...
@@ -75,9 +85,15 @@ mask_inputs = {@find, {'targon', 'cued'}, @find, {'targacq', 'choice'}};
 
 bar_ylims = [ -14e-3, 6e-3 ];
 
-freq_roi = 'beta';
+band_names = { 'beta', 'new_gamma' };
+cond_combs = dsp3.numel_combvec( band_names );
+
+for i = 1:size(cond_combs, 2)
+
+freq_roi = band_names{cond_combs(1, i)};
 freq_window = bands(freq_roi);
 
+epoch = '';
 base_prefix = sprintf( '%s__%s', freq_roi, epoch );
 base_subdir = sprintf( '%s2', rev_t );
 
@@ -95,8 +111,12 @@ stats__proanti_coh( ...
   , 'time_window', t_window ...
   , 'freq_window', freq_window ...
   , 'bar_ylims', bar_ylims ...
+  , 'plot_lines', true ...
+  , 'spectral_clims', [-7e-3, 7e-3] ...
   , load_func_inputs{:} ...
 );
+
+end
 
 end
 
@@ -111,6 +131,10 @@ mats = shared_utils.io.findmat( file_ps );
 [data, labels, freqs, t] = bfw.load_time_frequency_measure( mats ...
   , 'get_labels_func', @(file) file.labels ...
 );
+
+no_527 = findnone( labels, 'day__05272017' );
+keep( labels, no_527 );
+data = data(no_527, :, :);
 
 t = t * 1e3;
 

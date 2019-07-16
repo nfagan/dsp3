@@ -2,7 +2,7 @@ function outs = ranksum(data, labels, spec, a, b, varargin)
 
 %   RANKSUM -- Wilcoxon rank sum test for equal medians, for each subset.
 %
-%     outs = ... ranksum( data, labels, spec, a, b, factors ) performs a 
+%     outs = dsp3.ranksum( data, labels, spec, a, b ) performs a 
 %     two-sided rank sum test of the hypothesis that two independent 
 %     samples identified by label(s) `a` and `b` come from distributions
 %     with equal medians, for each subset of `data` identified by a
@@ -40,14 +40,7 @@ function outs = ranksum(data, labels, spec, a, b, varargin)
 %       - 'allow_missing_labels' (logical) -- If false (default) all labels 
 %         in `a` and `b` must be present in the object `labels`.
 %
-%     IN:
-%       - `data` (double)
-%       - `labels` (fcat)
-%       - `spec` (cell array of strings, char)
-%       - `a` (cell array of strings, char)
-%       - `b` (cell array of strings, char)
-%     OUT:
-%       - `outs` (struct)
+%     See also dsp3.signrank1, dsp3.signrank2
 
 defaults.mask = rowmask( data );
 defaults.descriptive_funcs = dsp3.descriptive_funcs();

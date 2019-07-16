@@ -35,13 +35,7 @@ function outs = anova1(data, labels, spec, factor, varargin)
 %     Specify `spec` as an empty cell array ({}) to perform the analysis
 %     once on the whole set of `data`.
 %
-%     IN:
-%       - `data` (double)
-%       - `labels` (fcat)
-%       - `spec` (cell array of strings, char)
-%       - `factors` (cell array of strings)
-%     OUT:
-%       - `outs` (struct)
+%     See also dsp3.ttest2, dsp3.anovan, dsp3.signrank1
 
 assert_ispair( data, labels );
 assert_hascat( labels, csunion(spec, factor) );
@@ -67,15 +61,20 @@ c_tbls = cell( size(I) );
 a_tbls = cell( size(I) );
 is_anova_significant = false( numel(I), 1 );
 
-for i = 1:numel(I)
+parfor i = 1:numel(I)
   grp = removecats( categorical(labels, factor, I{i}) );
   
   [p, tbl, stats] = anova1( data(I{i}), grp, 'off' );
-  [cc, c] = dsp3.multcompare( stats );
   
-  if ( params.remove_nonsignificant_comparisons )
-    issig = c(:, end) < alpha;
-    cc = cc(issig, :);
+  if ( ~isnan(p) && stats.df > 0 )
+    [cc, c] = dsp3.multcompare( stats );
+  
+    if ( params.remove_nonsignificant_comparisons )
+      issig = c(:, end) < alpha;
+      cc = cc(issig, :);
+    end
+  else
+    cc = cell( 0, 6 );
   end
   
   a_tbls{i} = dsp3.anova_cell2table( tbl );

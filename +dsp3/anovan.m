@@ -38,13 +38,7 @@ function outs = anovan(data, labels, spec, factors, varargin)
 %         dimensions are chosen based on the significant factors of the
 %         model.
 %
-%     IN:
-%       - `data` (double)
-%       - `labels` (fcat)
-%       - `spec` (cell array of strings, char)
-%       - `factors` (cell array of strings)
-%     OUT:
-%       - `outs` (struct)
+%     See also dsp3.anova1, dsp3.ttest2, dsp3.signrank2
 
 assert_ispair( data, labels );
 assert_hascat( labels, csunion(spec, factors) );

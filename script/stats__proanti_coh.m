@@ -473,6 +473,8 @@ for i = 1:numel(p_i)
     ylim( ax, params.line_ylims );
   end
   
+  xlim( ax, [0, 100] );
+  
   axs(i) = ax;
 end
 

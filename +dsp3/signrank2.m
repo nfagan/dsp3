@@ -1,18 +1,18 @@
 function outs = signrank2(data, labels, spec, a, b, varargin)
 
-%   SIGNRANK2 -- Run 2-sample t-test, for each subset.
+%   SIGNRANK2 -- Run paired signed rank test, for each subset.
 %
-%     outs = ... signrank2( data, labels, spec, a, b ) runs a
-%     paired signed rank test for equal medians between data identified by
-%     label(s) `a` and `b`, for each subset of `data` identified by a 
-%     combination of labels in `spec` categories. `labels` is an fcat
-%     object with the same number of rows as `data`. `outs` is a struct
-%     with the following fields:
+%     outs = dsp3.signrank2( data, labels, spec, a, b ) runs a paired signed 
+%     rank test for equal medians between data identified by label(s) `a` 
+%     and `b`, for each subset of `data` identified by a combination of 
+%     labels in `spec` categories. `labels` is an fcat object with the same 
+%     number of rows as `data`. `outs` is a struct with the following 
+%     fields:
 %
-%       - 't_tables' (cell array of table) -- Mx1 cell array of t-tables
-%         for the M label combinations.
-%       - 't_labels' (fcat) -- MxN fcat object identifying rows of
-%         't_tables'.
+%       - 'sr_tables' (cell array of table) -- Mx1 cell array of sign rank
+%         tables for the M label combinations.
+%       - 'sr_labels' (fcat) -- MxN fcat object identifying rows of
+%         'sr_tables'.
 %       - 'descriptive_tables' (table) -- Table of descriptive statistics
 %         of `data`.
 %       - 'descriptive_labels (fcat) -- MxN fcat object identifying rows of
@@ -20,7 +20,7 @@ function outs = signrank2(data, labels, spec, a, b, varargin)
 %       - 'descriptive_specificity' (cell array of strings) -- Categories
 %         used to generate descriptive statistics of `data`.
 %
-%     outs = ... ttest2( 'name', value ) specifies additional paired
+%     outs = dsp3.signrank2( 'name', value ) specifies additional paired
 %     inputs. Valid inputs are:
 %
 %       - 'mask' (double, uint64) -- Applies a mask to the data and labels
@@ -29,24 +29,8 @@ function outs = signrank2(data, labels, spec, a, b, varargin)
 %       - 'descriptive_funcs' (cell array of function_handle) -- Array of
 %         handles to functions used to summarize `data`. Default is {@mean,
 %         @median, @rows}
-%       - 'ttest2_inputs' (cell) -- Array of additional inputs to be passed
-%         to the built-in ttest2 function.
-%       - 'test_category' (cell array of strings, char, NaN) -- Additional
-%         category(ies) (beyond `spec`) to use to generate descriptive
-%         statistics of `data`. Default is NaN, in which case the
-%         additional categories are chosen automatically based on the
-%         categories of `a` and `b`.
 %       - 'allow_missing_labels' (logical) -- If false (default) all labels 
 %         in `a` and `b` must be present in the object `labels`.
-%
-%     IN:
-%       - `data` (double)
-%       - `labels` (fcat)
-%       - `spec` (cell array of strings, char)
-%       - `a` (cell array of strings, char)
-%       - `b` (cell array of strings, char)
-%     OUT:
-%       - `outs` (struct)
 
 defaults.mask = rowmask( data );
 defaults.descriptive_funcs = dsp3.descriptive_funcs();

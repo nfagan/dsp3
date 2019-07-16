@@ -17,6 +17,7 @@ defaults.choice_time_window = [-250, 0];
 defaults.freq_window = [ 45, 60 ];
 defaults.mask_inputs = {};
 defaults.bar_ylims = [];
+defaults.line_ylims = [];
 defaults.freq_roi_name = '';
 defaults.add_bar_points = false;
 defaults.bar_plot_type = 'bar';
@@ -33,6 +34,9 @@ base_subdir = params.base_subdir;
 
 [data, labels, freqs, t] = params.load_func( params );
 lower( labels );
+
+% [~, matched_ind] = match_days_for_epochs( labels );
+% data = data(matched_ind, :, :);
 
 dayspec = { 'administration', 'days', 'trialtypes', 'outcomes', 'epochs' };
 blockspec = csunion( dayspec, {'blocks', 'sessions'} );
@@ -82,6 +86,7 @@ function [data, labels, freqs, t] = default_load_func(params)
 epochs = params.epochs;
 drug_type = params.drug_type;
 meas_t = cellstr( params.measure );
+conf = params.config;
 
 meas_types = cellfun( @(x) sprintf('at_%s', x), meas_t, 'un', 0 );
 
@@ -89,6 +94,35 @@ p = dsp3.get_intermediate_dir( shared_utils.io.fullfiles(meas_types, drug_type, 
 load_inputs = { 'get_meas_func', @(meas) meas.measure, 'is_cached', params.is_cached };
 
 [data, labels, freqs, t] = dsp3.load_signal_measure( shared_utils.io.findmat(p), load_inputs{:} );
+
+end
+
+function [labels, matched_ind] = match_days_for_epochs(labels)
+
+day_I = findall( labels, 'days' );
+epochs = combs( labels, 'epochs' );
+
+if ( numel(epochs) == 1 )
+  matched_ind = rowmask( labels );
+  return;
+end
+
+inds_to_remove = [];
+
+for i = 1:numel(day_I)
+  for j = 1:numel(epochs)
+    if ( count(labels, epochs{j}, day_I{i}) == 0 )
+      inds_to_remove(end+1) = i;
+      break;
+    end
+  end
+end
+
+keep_I = day_I;
+keep_I(inds_to_remove) = [];
+
+matched_ind = vertcat( keep_I{:} );
+keep( labels, matched_ind );
 
 end
 
@@ -119,7 +153,11 @@ plt_labs = prune( labels(mask) );
 
 pl = plotlabeled.make_common();
 pl.x = t;
-pl.error_func = @plotlabeled.nanstd;
+pl.error_func = @plotlabeled.nansem;
+
+if ( ~isempty(params.line_ylims) )
+  pl.y_lims = params.line_ylims;
+end
 
 axs = pl.lines( plt_dat, plt_labs, gcats, pcats );
 

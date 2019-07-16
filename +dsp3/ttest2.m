@@ -2,12 +2,11 @@ function outs = ttest2(data, labels, spec, a, b, varargin)
 
 %   TTEST2 -- Run 2-sample t-test, for each subset.
 %
-%     outs = ... ttest2( data, labels, spec, a, b ) runs a
-%     2-sample t-test for the mean differences between data identified by
-%     label(s) `a` and `b`, for each subset of `data` identified by a 
-%     combination of labels in `spec` categories. `labels` is an fcat
-%     object with the same number of rows as `data`. `outs` is a struct
-%     with the following fields:
+%     outs = dsp3.ttest2( data, labels, spec, a, b ) runs a 2-sample t-test 
+%     for the mean differences between data identified by label(s) `a` and 
+%     `b`, for each subset of `data` identified by a combination of labels 
+%     in `spec` categories. `labels` is an fcat object with the same number 
+%     of rows as `data`. `outs` is a struct with the following fields:
 %
 %       - 't_tables' (cell array of table) -- Mx1 cell array of t-tables
 %         for the M label combinations.
@@ -39,14 +38,7 @@ function outs = ttest2(data, labels, spec, a, b, varargin)
 %       - 'allow_missing_labels' (logical) -- If false (default) all labels 
 %         in `a` and `b` must be present in the object `labels`.
 %
-%     IN:
-%       - `data` (double)
-%       - `labels` (fcat)
-%       - `spec` (cell array of strings, char)
-%       - `a` (cell array of strings, char)
-%       - `b` (cell array of strings, char)
-%     OUT:
-%       - `outs` (struct)
+%     See also dsp3.anova1, dsp3.signrank2
 
 defaults.mask = rowmask( data );
 defaults.descriptive_funcs = dsp3.descriptive_funcs();
