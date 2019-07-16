@@ -11,6 +11,7 @@ else
 end
 
 runner = shared_utils.pipeline.LoopedMakeRunner();
+runner.files_aggregate_type = 'containers.Map';
 
 runner.save = field_or( params, 'save', true );
 runner.overwrite = field_or( params, 'overwrite', false );
