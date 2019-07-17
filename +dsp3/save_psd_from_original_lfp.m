@@ -1,6 +1,6 @@
 function results = save_psd_from_original_lfp(event_name, varargin)
 
-defaults = dsp3.make.defaults.coherence();
+defaults = dsp3.make.defaults.psd();
 defaults.transform_func = @(x) dsp3.make.util.lfp_signal_container_to_struct( x, event_name );
 
 inputs = { fullfile('original_aligned_lfp', event_name) };

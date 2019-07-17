@@ -5,7 +5,7 @@ narginchk( 2, Inf );
 defaults = dsp3.get_common_lfp_defaults();
 params = dsp3.parsestruct( defaults, varargin );
 
-event_name = validatestring( event_name, {'targAcq', 'targOn'}, mfilename, 'event_name' );
+event_name = validatestring( event_name, {'targAcq', 'targOn', 'cueOn'}, mfilename, 'event_name' );
 
 dsp2_conf = dsp2.config.load();
 dsp3_conf = dsp3.config.load();
@@ -29,7 +29,7 @@ save_p = fullfile( dsp3.dataroot(dsp3_conf), 'intermediates', 'original_aligned_
 shared_utils.io.require_dir( save_p );
 
 switch ( event_name )
-  case 'targAcq' 
+  case { 'targAcq', 'cueOn' } 
     orig_labs = fcat.from( dsp3_load_cc_targacq_labels(dsp3_conf) );
     matched_labs = dsp3_match_cc_targacq_trial_labels( orig_labs, labs' );
   case 'targOn'
