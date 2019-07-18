@@ -1,6 +1,6 @@
-function [data, labels] = dsp3_get_converted_cc_sf_data(acc, bla, varargin)
+function [data, labels] = dsp3_get_converted_cc_sf_data(acc, bla, spikes, keep_nan)
 
-[bladat, blalabs] = dsp3_convert_cc_sf( bla );
+[bladat, blalabs] = dsp3_convert_cc_sf( bla, spikes );
 
 if ( isempty(blalabs) )
   n_sites = 1;
@@ -8,7 +8,7 @@ else
   n_sites = max( fcat.parse(blalabs('sites'), 'site__') );
 end
 
-[accdat, acclabs] = dsp3_convert_cc_sf( acc, n_sites, varargin{:} );
+[accdat, acclabs] = dsp3_convert_cc_sf( acc, spikes, n_sites, keep_nan );
 
 guard_empty( blalabs, @(x) addsetcat(x, 'regions', 'bla_spike_acc_field') );
 guard_empty( acclabs, @(x) addsetcat(x, 'regions', 'acc_spike_bla_field') );

@@ -2,16 +2,16 @@ function [dat, labs, I] = summary_binary_op(data, labels, spec, a, b, opfunc, sf
 
 %   SUMMARY_BINARY_OP -- Apply binary operation to data subsets.
 %
-%     [newdata, newlabs] = summary_binary_op( data, labels, spec, a, b, opfunc )
+%     [newdata, newlabs] = dsp3.summary_binary_op( data, labels, spec, a, b, opfunc )
 %     performs the binary operation `opfunc` on subsets of data identified
 %     by the label combinations `a` and `b`, first averaging across each
 %     subset, separately for each combination of labels in `spec` 
 %     categories.
 %
-%     ... = summary_binary_op( ..., sfunc ) uses `sfunc` to collapse the
+%     ... = dsp3.summary_binary_op( ..., sfunc ) uses `sfunc` to collapse the
 %     subsets, instead of `@nanmean`.
 %
-%     ... = summary_binary_op( ..., mask ) restricts subsets to the rows
+%     ... = dsp3.summary_binary_op( ..., mask ) restricts subsets to the rows
 %     contained in the uint64 index vector `mask`.
 %
 %     This function is commonly used to subtract or divide subset-means 
@@ -27,20 +27,6 @@ function [dat, labs, I] = summary_binary_op(data, labels, spec, a, b, opfunc, sf
 %       , 'scrambled', @minus )
 %
 %     See also fcat/findall
-%
-%     IN:
-%       - `data` (double)
-%       - `labels` (fcat)
-%       - `spec` (cell array of strings, char)
-%       - `a` (cell array of strings, char)
-%       - `b` (cell array of strings, char)
-%       - `opfunc` (function_handle)
-%       - `sfunc` (function_handle)
-%       - `mask` (uint64, double) |OPTIONAL|
-%     OUT:
-%       - `dat` (double)
-%       - `labs` (fcat)       
-%       - `I` (cell array of uint64)
 
 assert_ispair( data, labels );
 assert_hascat( labels, spec );
