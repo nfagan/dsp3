@@ -1,4 +1,4 @@
-function dsp3_linearize_cc_sf(acc, bla, spikes, events, targacq_labels)
+function [coh_dat, coh_labs] = dsp3_linearize_cc_sf(acc, bla, spikes, events, targacq_labels)
 
 validate( acc, bla, events );
 
@@ -93,7 +93,7 @@ for i = 1:numel(events)
   coh_dat{i} = vertcat( coh_arrays{:} );
 end
 
-d = 10;
+coh_dat = vertcat( coh_dat{:} );
 
 end
 
