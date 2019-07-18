@@ -16,8 +16,10 @@ runner.files_aggregate_type = 'containers.Map';
 runner.save = field_or( params, 'save', true );
 runner.overwrite = field_or( params, 'overwrite', false );
 runner.is_parallel = field_or( params, 'is_parallel', true );
-runner.get_identifier_func = @(varargin) varargin{1}.src_filename;
-runner.get_filename_func = @(varargin) strrep(varargin{1}, '.pl2', '.mat');
+runner.get_identifier_func = ...
+  @(varargin) shared_utils.char.require_end(varargin{1}.src_filename, '.mat');
+runner.get_filename_func = ...
+  @(varargin) shared_utils.char.require_end(strrep(varargin{1}, '.pl2', '.mat'), '.mat');
 runner.input_directories = dsp3.get_intermediate_dir( inputs, conf );
 runner.output_directory = char( dsp3.get_intermediate_dir(output, conf) );
 runner.filter_files_func = ...
