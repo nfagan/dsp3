@@ -3,9 +3,11 @@ function dsp3_regenerate_signals(event_name, subdir_name, varargin)
 narginchk( 2, Inf );
 
 defaults = dsp3.get_common_lfp_defaults();
+defaults.time = [];
+
 params = dsp3.parsestruct( defaults, varargin );
 
-event_name = validatestring( event_name, {'targAcq', 'targOn', 'cueOn'}, mfilename, 'event_name' );
+event_name = validatestring( event_name, {'targAcq', 'targOn', 'cueOn', 'fixOn'}, mfilename, 'event_name' );
 
 dsp2_conf = dsp2.config.load();
 dsp3_conf = dsp3.config.load();
@@ -13,6 +15,10 @@ dsp3_conf = dsp3.config.load();
 dsp2_conf.SIGNALS.EPOCHS.(event_name).win_size = 150;
 dsp2_conf = dsp2.config.set.inactivate_epochs( 'all', dsp2_conf );
 dsp2_conf = dsp2.config.set.activate_epochs( event_name, dsp2_conf );
+
+if ( ~isempty(params.time) )
+  dsp2_conf.SIGNALS.EPOCHS.(event_name).time(1:2) = params.time;
+end
 
 %%
 
@@ -29,7 +35,7 @@ save_p = fullfile( dsp3.dataroot(dsp3_conf), 'intermediates', 'original_aligned_
 shared_utils.io.require_dir( save_p );
 
 switch ( event_name )
-  case { 'targAcq', 'cueOn' } 
+  case { 'targAcq', 'cueOn', 'fixOn' } 
     orig_labs = fcat.from( dsp3_load_cc_targacq_labels(dsp3_conf) );
     matched_labs = dsp3_match_cc_targacq_trial_labels( orig_labs, labs' );
   case 'targOn'
