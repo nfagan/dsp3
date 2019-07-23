@@ -1,6 +1,7 @@
 function run_agent_specificity_combinations(consolidated, spikes, new_to_orig, event_ts, event_labels, conf)
 
 analysis_p = get_analysis_p( conf );
+plot_p = get_plot_p( conf );
 
 % use_norms = [ true, false ];
 % remove_zeros = [ true, false ];
@@ -113,6 +114,10 @@ if ( use_norm ), tbl_prefix = sprintf( '%s_normalized', tbl_prefix ); end
 
 dsp3.req_writetable( counts_tbl, analysis_p, tbl_labels, tbl_spec, tbl_prefix );
 
+%% Pie chart
+
+plot_pie( is_sig_anova, anova_outs.anova_labels', fullfile(plot_p, 'pie'), tbl_prefix );
+
 %%
 
 cell_type_labels = make_cell_type_labels( is_sig_anova, anova_outs.anova_labels' );
@@ -163,7 +168,71 @@ comp_counts_tbl = comp_counts_tbl(sorted_I, :);
 dsp3.req_writetable( comp_counts_tbl, analysis_p, comp_labs ...
   , {'region'}, counts_tbl_prefix );
 
+%%
+
+plot_bar_post_hoc_comparisons( comp_labs, cell_type_labels ...
+  , fullfile(plot_p, 'bar_comparisons'), counts_tbl_prefix );
+
 end
+
+end
+
+function plot_bar_post_hoc_comparisons(labs, cell_type_labels, save_p, prefix)
+
+%%
+mask = findnone( labs, 'none-significant' );
+
+[pltlabs, I, C] = keepeach( labs', {'outcomes', 'region'}, mask );
+props = zeros( numel(I), 1 );
+
+for i = 1:numel(I)
+  reg = C{2, i};
+  num_this_reg = numel( find(cell_type_labels, reg) );
+  props(i) = numel( I{i} ) / num_this_reg * 100;
+end
+
+pl = plotlabeled.make_common();
+pcats = { 'region' };
+
+axs = pl.bar( props, pltlabs, 'outcomes', {}, pcats );
+
+shared_utils.plot.fullscreen( gcf );
+dsp3.req_savefig( gcf, save_p, pltlabs, pcats, prefix );
+
+end
+
+function axs = plot_pie(is_sig, labs, save_p, prefix)
+
+%%
+
+pl = plotlabeled.make_common();
+pcats = 'region';
+gcats = 'agent_selectivity';
+
+[tmp_labs, I] = keepeach( labs', {'trialtypes', 'region'} );
+addcat( tmp_labs, 'agent_selectivity' );
+
+prop_dat = zeros( numel(I)*2, 1 );
+prop_labs = fcat();
+
+stp = 1;
+
+for i = 1:numel(I)
+  p_sig = pnz( is_sig(I{i}) );
+  p_non_sig = 1 - p_sig;
+  
+  append1( prop_labs, tmp_labs, i );
+  setcat( prop_labs, 'agent_selectivity', 'agent-selective', rows(prop_labs) );
+  append1( prop_labs, tmp_labs, i );
+  setcat( prop_labs, 'agent_selectivity', 'non-agent-selective', rows(prop_labs) );
+  
+  prop_dat(stp) = p_sig;
+  prop_dat(stp+1) = p_non_sig;
+  stp = stp + 2;
+end
+
+axs = pl.pie( prop_dat, prop_labs, gcats, pcats );
+dsp3.req_savefig( gcf, save_p, prop_labs, pcats, prefix );
 
 end
 
@@ -245,9 +314,21 @@ end
 
 end
 
+function components = path_components()
+
+components = { 'cell_type_agent_specificity', dsp3.datedir };
+
+end
+
+function p = get_plot_p(conf)
+
+p = char( dsp3.plotp(path_components(), conf) );
+
+end
+
 function p = get_analysis_p(conf)
 
-p = char( dsp3.analysisp({'cell_type_agent_specificity', dsp3.datedir}, conf) );
+p = char( dsp3.analysisp(path_components(), conf) );
 
 end
 

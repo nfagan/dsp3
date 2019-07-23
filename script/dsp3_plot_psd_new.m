@@ -1,5 +1,5 @@
 psd_p = dsp3.get_intermediate_dir( 'original_summarized_psd' );
-full_psd_p = fullfile( psd_p, 'targAcq-150-cc' );
+full_psd_p = fullfile( psd_p, 'targOn-150-cc' );
 psd_mats = shared_utils.io.findmat( full_psd_p );
 
 [psd, psd_labs, freqs, t] = bfw.load_time_frequency_measure( psd_mats ...
@@ -48,6 +48,9 @@ shared_utils.plot.add_vertical_lines( axs, find(plt_t == 0) ); %#ok
 save_p = char( dsp3.plotp({'psd_lines', dsp3.datedir}) );
 do_save = true;
 
+is_pro_anti = true;
+is_pro_minus_anti = true;
+
 bands = dsp3.get_bands( 'map' );
 
 [band_dat, band_labs] = dsp3.get_band_means( psd, psd_labs', freqs, bands );
@@ -59,9 +62,10 @@ keep( band_labs, find(~nan_rows) );
 
 proanti_each = { 'days', 'sites', 'channels', 'regions', 'trialtypes', 'bands' };
 [proanti, proanti_labs] = dsp3.pro_v_anti( band_dat, band_labs', proanti_each );
-[proanti, proanti_labs] = dsp3.pro_minus_anti( proanti, proanti_labs', proanti_each );
 
-is_pro_anti = true;
+if ( is_pro_minus_anti )
+  [proanti, proanti_labs] = dsp3.pro_minus_anti( proanti, proanti_labs', proanti_each );
+end
 
 if ( is_pro_anti )
   pltdat = proanti;
@@ -88,9 +92,15 @@ mask = fcat.mask( pltlabs...
 pltdat = pltdat(mask, t_ind);
 pltlabs = prune( pltlabs(mask) );
 
-pcats = { 'trialtypes', 'bands' };
+if ( is_pro_minus_anti )
+  gcats = { 'outcomes', 'regions' };
+  pcats = { 'trialtypes', 'bands' };
+else
+  gcats = { 'regions' };
+  pcats = { 'trialtypes', 'bands', 'outcomes' };
+end
 
-axs = pl.lines( pltdat, pltlabs, {'outcomes', 'regions'}, pcats );
+axs = pl.lines( pltdat, pltlabs, gcats, pcats );
 
 if ( do_save )
   shared_utils.plot.fullscreen( gcf );
