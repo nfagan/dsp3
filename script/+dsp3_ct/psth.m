@@ -1,7 +1,11 @@
-function [psth, labels, out_t] = psth(spikes, events, min_t, max_t, bin_width)
+function [psth, labels, out_t, raster_times] = psth(spikes, events, min_t, max_t, bin_width, include_raster)
 
 if ( nargin < 5 )
   bin_width = [];
+end
+
+if ( nargin < 6 )
+  include_raster = false;
 end
 
 assert_ispair( spikes );
@@ -12,6 +16,7 @@ validateattributes( events.data, {'double'}, {'column'}, mfilename, 'event times
 psth = {};
 labels = {};
 ts = {};
+binned_ts = {};
 
 spike_dat = spikes.data;
 event_dat = events.data;
@@ -48,8 +53,9 @@ parfor i = 1:num_spike_dat
   else
     [tmp_psth, t] = bfw.trial_psth( spike_ts, event_ts, min_t, max_t, bin_width );
   end
-     
-  tmp_psth(isnan(event_ts), :) = nan;
+  
+  is_nan_event = isnan( event_ts );     
+  tmp_psth(is_nan_event, :) = nan;
   
   evt_labels = prune( event_labels(event_ind) );
   spk_labels = prune( spike_labels(i) );
@@ -58,11 +64,17 @@ parfor i = 1:num_spike_dat
   psth{i} = tmp_psth;
   labels{i} = evt_labels;
   ts{i} = t;
+  
+  if ( include_raster )
+    binned_ts{i} = ...
+      arrayfun( @(x) spike_ts(spike_ts >= min_t+x & spike_ts <= max_t+x) - x, event_ts, 'un', 0 );
+  end
 end
 
 psth = vertcat( psth{:} );
 labels = vertcat( fcat, labels{:} );
 out_t = vertcat( ts{:} );
+raster_times = vertcat( binned_ts{:} );
 
 assert_ispair( psth, labels );
 

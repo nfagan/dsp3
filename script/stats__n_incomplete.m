@@ -58,9 +58,85 @@ prop_mask = findnone( subsetlabs, 'init_error' );
 %%
 
 analysis_complete( subsetlabs' );
+
+plot_cued_and_choice_together( n_complete_props, proportion_labels', params );
+
 plot_choice( n_complete_props, proportion_labels', params );
+plot_cued( n_complete_props, proportion_labels', params );
+
 
 % plot_cue_and_choice_together( n_complete_props, proportion_labels', params );
+
+end
+
+function plot_cued_and_choice_together(n_complete_props, proportion_labels, params)
+
+%%
+xcats = { 'contexts' };
+gcats = { 'completed_trial' };
+pcats = {};
+
+mask = fcat.mask( proportion_labels ...
+  , @find, 'complete' ...
+  , @findnot, 'errors' ...
+);
+
+pl = plotlabeled.make_common();
+pl.add_points = true;
+pl.marker_size = 10;
+pl.x_order = { 'context__self', 'context__both', 'context__other', 'none' };
+pl.y_lims = [ 0, 1.1 ];
+pl.point_jitter = 0;
+pl.marker_type = 'o';
+pl.x_tick_rotation = 0;
+
+pltdat = n_complete_props(mask);
+pltlabs = prune( proportion_labels(mask) );
+
+axs = pl.bar( pltdat, pltlabs, xcats, gcats, pcats );
+
+if ( params.do_save )
+  pltcats = unique( cshorzcat(gcats, pcats) );
+  shared_utils.plot.fullscreen( gcf );
+  dsp3.req_savefig( gcf, params.plot_p, prune(proportion_labels(mask)), pltcats, 'not-jittered' );
+end
+
+end
+
+function plot_cued(n_complete_props, proportion_labels, params)
+%%
+
+xcats = { 'contexts' };
+gcats = { 'completed_trial' };
+pcats = { 'trialtypes' };
+
+mask = fcat.mask( proportion_labels ...
+  , @find, 'complete' ...
+  , @findnot, 'errors' ...
+  , @find, 'cued' ...
+);
+
+pl = plotlabeled.make_common();
+pl.add_points = true;
+pl.marker_size = 10;
+pl.x_order = { 'context__self', 'context__both', 'context__other', 'none' };
+pl.y_lims = [ 0.4, 1.1 ];
+pl.point_jitter = 0.8;
+pl.marker_type = 'o';
+pl.x_tick_rotation = 0;
+
+pltdat = n_complete_props(mask);
+pltlabs = prune( proportion_labels(mask) );
+
+axs = pl.bar( pltdat, pltlabs, xcats, gcats, pcats );
+
+% axs = pl.boxplot( pltdat, pltlabs, gcats, pcats );
+
+if ( params.do_save )
+  pltcats = unique( cshorzcat(gcats, pcats) );
+  shared_utils.plot.fullscreen( gcf );
+  dsp3.req_savefig( gcf, params.plot_p, prune(proportion_labels(mask)), pltcats );
+end
 
 end
 
@@ -101,13 +177,20 @@ mask = fcat.mask( proportion_labels ...
 
 pl = plotlabeled.make_common();
 pl.add_points = true;
+pl.y_lims = [ 0.4, 1.1 ];
+pl.x_tick_rotation = 0;
 
-axs = pl.bar( n_complete_props(mask), proportion_labels(mask) ...
-  , xcats, gcats, pcats );
+pltdat = n_complete_props(mask);
+pltlabs = proportion_labels(mask);
+
+axs = pl.bar( pltdat, pltlabs, xcats, gcats, pcats );
+
+% axs = pl.boxplot( pltdat, pltlabs, [xcats, gcats], pcats );
+
 
 if ( params.do_save )
   pltcats = unique( cshorzcat(gcats, pcats) );
-  
+  shared_utils.plot.fullscreen( gcf );
   dsp3.req_savefig( gcf, params.plot_p, prune(proportion_labels(mask)), pltcats );
 end
 

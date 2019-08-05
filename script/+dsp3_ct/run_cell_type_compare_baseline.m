@@ -1,5 +1,17 @@
-conf = dsp3.config.load();
-consolidated = dsp3.get_consolidated_data( conf );
+function run_cell_type_compare_baseline(varargin)
+
+defaults = dsp3.get_common_make_defaults();
+defaults.consolidated = [];
+
+params = dsp3.parsestruct( defaults, varargin );
+
+conf = params.config;
+consolidated = params.consolidated;
+
+if ( isempty(consolidated) )
+  consolidated = dsp3.get_consolidated_data( conf );
+end
+
 sua = dsp3_ct.load_sua_data( conf );
 [spike_ts, spike_labels, event_ts, event_labels, new_to_orig] = dsp3_ct.linearize_sua( sua );
 
@@ -33,8 +45,8 @@ use_or_reward = use_or_rewards(use_combs(2, i));
 
 if ( is_reward_only )
   targ_epoch = 'rwdOn';
-  targ_min_t = 0;
-  targ_max_t = 0.15;
+  targ_min_t = 0.05;
+  targ_max_t = 0.45;
 else
   targ_epoch = ternary( is_choice, 'targAcq', 'targOn' );
   targ_min_t = 0;
@@ -101,7 +113,7 @@ each_I = findall( sr_labels, count_each );
   dsp3_ct.p_significant_per_outcome_received_forgone( sr_ps, sr_labels', each_I );
 
 cell_type_labels = dsp3_ct.label_cell_type( sr_ps, sr_labels', each_I );
-dsp3_ct.save_cell_type_labels( cell_type_labels, targ_epoch );
+dsp3_ct.save_cell_type_labels( cell_type_labels, new_to_orig, targ_epoch );
 
 
 [counts, count_labs] = dsp3_ct.count_significant( sr_ps, sr_labels', each_I );
@@ -117,6 +129,9 @@ dsp3.req_writetable( counts_tbl, analysis_p, count_labs, count_each, 'counts' );
 pl = plotlabeled.make_common();
 pl.group_order = { 'received', 'forgone', 'not_significant' };
 
+pcats = { 'region' };
+gcats = { 'trialtypes' };
+
 count_mask = fcat.mask( count_labs ...
   , @find, {'not_significant', 'forgone', 'received'} ...
 );
@@ -128,9 +143,6 @@ dsp3.req_savefig( gcf, plot_p, count_labs, [pcats, gcats], 'percent_modulated' )
 
 pl = plotlabeled.make_common();
 pl.x_order = { 'self', 'both', 'other', 'none' };
-
-pcats = { 'region' };
-gcats = { 'trialtypes' };
 
 axs = pl.bar( props, prop_labs, 'outcomes', gcats, pcats );
 % shared_utils.plot.set_ylims( axs, [0, 0.4] );

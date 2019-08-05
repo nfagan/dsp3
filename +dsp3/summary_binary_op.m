@@ -3,7 +3,7 @@ function [dat, labs, I] = summary_binary_op(data, labels, spec, a, b, opfunc, sf
 %   SUMMARY_BINARY_OP -- Apply binary operation to data subsets.
 %
 %     [newdata, newlabs] = dsp3.summary_binary_op( data, labels, spec, a, b, opfunc )
-%     performs the binary operation `opfunc` on subsets of data identified
+%     applies the binary operation `opfunc` to subsets of data identified
 %     by the label combinations `a` and `b`, first averaging across each
 %     subset, separately for each combination of labels in `spec` 
 %     categories.

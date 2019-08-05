@@ -199,20 +199,44 @@ prefix = 'rt';
 pltlabs = subsetlabs';
 pltdat = subsetrt;
 
-pl = plotlabeled();
+pl = plotlabeled.make_common();
 pl.summary_func = @plotlabeled.nanmean;
 pl.error_func = @plotlabeled.nansem;
 pl.x_order = { 'self', 'both', 'other', 'none' };
-pl.group_order = { 'low', 'medium', 'high' };
+pl.group_order = { 'self', 'both', 'other', 'none' };
 
 mask = fcat.mask( pltlabs, @find, 'choice', @findnone, 'errors' );
 
-pl.bar( pltdat(mask), pltlabs(mask), 'outcomes', 'magnitudes', {'drugs', 'trialtypes'} );
+subset_data = pltdat(mask);
+subset_labs = prune( pltlabs(mask) );
+
+% axs = pl.bar( subset_data, subset_labs, 'outcomes', 'magnitudes', {'drugs', 'trialtypes'} );
+
+% order_ind = try_order( subset_labs, {'self', 'both', 'other', 'none'} );
+% subset_data = subset_data(order_ind);
+% subset_labs = subset_labs(order_ind);
+
+[sort_I, c] = findall( subset_labs, 'outcomes' );
+[~, ind] = ismember( {'self', 'both', 'other', 'none'}, c );
+sort_I = cat_expanded( 1, sort_I(ind) );
+subset_data = subset_data(sort_I);
+subset_labs = subset_labs(sort_I);
+
+axs = pl.boxplot( subset_data, subset_labs, {'outcomes'}, {'drugs', 'trialtypes'} );
+% axs = pl.violinplot( subset_data, subset_labs, {'outcomes', 'magnitudes'}, {'drugs', 'trialtypes'} );
 
 if ( do_save )
   fname = dsp3.prefix( prefix, dsp3.fname(pltlabs, {'outcomes', 'drugs', 'trialtypes'}) );
   dsp3.savefig( gcf, fullfile(plot_p, fname) );
 end
+
+%%  by outcome
+
+anova_outs = dsp3.anova1( subset_data, subset_labs, {}, 'outcomes' ...
+  , 'remove_nonsignificant_comparisons', false ...
+);
+
+dsp3.save_anova_outputs( anova_outs, analysis_p, 'outcomes' );
 
 %%  drug anova
 
@@ -284,6 +308,21 @@ if ( dsp3.isdrug(drug_type) )
     dsp3.req_savefig( gcf, plot_p, pltlabs, unique(cshorzcat(xcats, gcats, pcats)), prefix );
   end 
   
+end
+
+end
+
+function ind = try_order(labels, by)
+
+ind = rowmask( labels );
+
+for i = 1:numel(by)
+  by_ind = find( labels, by{i} );
+  
+  if ( ~isempty(by_ind) )    
+    ind = setdiff( ind, by_ind );
+    ind = [ by_ind; ind ];
+  end
 end
 
 end

@@ -38,8 +38,8 @@ targ_min_t = 0;
 targ_max_t = 0.15;
 
 rwd_epoch = 'rwdOn';
-rwd_min_t = 0;
-rwd_max_t = 0.15;
+rwd_min_t = 0.05;
+rwd_max_t = 0.45;
 
 targ_ts = event_ts(:, consolidated.event_key(targ_epoch));
 base_ts = event_ts(:, consolidated.event_key(base_epoch));
@@ -170,14 +170,14 @@ dsp3.req_writetable( comp_counts_tbl, analysis_p, comp_labs ...
 
 %%
 
-plot_bar_post_hoc_comparisons( comp_labs, cell_type_labels ...
+plot_bar_post_hoc_comparisons( is_sig_anova, anova_outs.anova_labels, comp_labs, cell_type_labels ...
   , fullfile(plot_p, 'bar_comparisons'), counts_tbl_prefix );
 
 end
 
 end
 
-function plot_bar_post_hoc_comparisons(labs, cell_type_labels, save_p, prefix)
+function plot_bar_post_hoc_comparisons(is_sig_anova, anova_labels, labs, cell_type_labels, save_p, prefix)
 
 %%
 mask = findnone( labs, 'none-significant' );
@@ -187,7 +187,9 @@ props = zeros( numel(I), 1 );
 
 for i = 1:numel(I)
   reg = C{2, i};
-  num_this_reg = numel( find(cell_type_labels, reg) );
+  num_this_reg = sum( is_sig_anova(find(anova_labels, reg)) );
+  
+%   num_this_reg = numel( find(cell_type_labels, reg) );
   props(i) = numel( I{i} ) / num_this_reg * 100;
 end
 
@@ -206,6 +208,8 @@ function axs = plot_pie(is_sig, labs, save_p, prefix)
 %%
 
 pl = plotlabeled.make_common();
+pl.pie_include_percentages = true;
+
 pcats = 'region';
 gcats = 'agent_selectivity';
 
@@ -231,7 +235,7 @@ for i = 1:numel(I)
   stp = stp + 2;
 end
 
-axs = pl.pie( prop_dat, prop_labs, gcats, pcats );
+axs = pl.pie( prop_dat*100, prop_labs, gcats, pcats );
 dsp3.req_savefig( gcf, save_p, prop_labs, pcats, prefix );
 
 end

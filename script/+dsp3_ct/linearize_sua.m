@@ -16,17 +16,23 @@ new_to_original = [];
 
 for i = 1:numel(events)
   evt_labels = fcat.from( events{i}.event.labels );
+  curr_event_ts = events{i}.event.data;
+  
+  session_id = combs( evt_labels, 'session_ids' );
+  assert( numel(session_id) == 1 );
   
   unit_labels = one( evt_labels' );
   units = spikes{i}.data;
   
-  addcat( unit_labels, {'region', 'channel', 'unit_uuid'} );
+  addcat( unit_labels, {'region', 'channel', 'unit_uuid', 'cc_data_index', 'cc_unit_index'} );
   
   for j = 1:numel(units)
     unit = units{j};
     
     setcat( unit_labels, {'region', 'channel'}, unit.name );
     setcat( unit_labels, 'unit_uuid', sprintf('unit_uuid__%d', unit_stp) );
+    setcat( unit_labels, 'cc_data_index', sprintf('cc_data_index__%d', i) );
+    setcat( unit_labels, 'cc_unit_index', sprintf('cc_unit_index__%d', j) );
     
     spike_ts{end+1, 1} = unit.data;
     append( spike_labels, unit_labels );
@@ -36,8 +42,36 @@ for i = 1:numel(events)
     unit_stp = unit_stp + 1;
   end
   
-  append( event_labels, evt_labels );
-  event_ts = [ event_ts; events{i}.event.data ];
+  if ( count(event_labels, session_id) == 0 )
+    append( event_labels, evt_labels );
+    event_ts = [ event_ts; curr_event_ts ];
+  else
+    curr_ind = find( event_labels, session_id );
+    assert( isequaln(events{i}.event.data, event_ts(curr_ind, :)) ...
+      , 'Duplicate sessions had different event times.' );
+  end
+end
+
+end
+
+function ts = get_align_ts(align_ts, align_labels, evt_labels)
+
+ind = find( align_labels, combs(evt_labels, 'session_ids') );
+assert( ~isempty(ind), 'No matching session' );
+ts = align_ts(ind, :);
+
+end
+
+function ts = do_alignment(align_ts, key, evt_ts)
+
+plex = align_ts(:, key('plex'));
+picto = align_ts(:, key('picto'));
+
+ts = nan( size(evt_ts) );
+evt_ts(evt_ts == 0) = nan;
+
+for i = 1:size(evt_ts, 2)
+  ts(:, i) = shared_utils.sync.cinterp( evt_ts(:, i), picto, plex );
 end
 
 end

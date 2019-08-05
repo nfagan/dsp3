@@ -1,5 +1,10 @@
+is_choice = false;
+
+trial_type_label = ternary( is_choice, 'choice', 'cued' );
+event_name = ternary( is_choice, 'targAcq-150-cc', 'targOn-150-cc' );
+
 psd_p = dsp3.get_intermediate_dir( 'original_summarized_psd' );
-full_psd_p = fullfile( psd_p, 'targOn-150-cc' );
+full_psd_p = fullfile( psd_p, event_name) ;
 psd_mats = shared_utils.io.findmat( full_psd_p );
 
 [psd, psd_labs, freqs, t] = bfw.load_time_frequency_measure( psd_mats ...
@@ -22,7 +27,7 @@ plt_t = t(t_ind);
 pl = plotlabeled.make_spectrogram( round(plt_freqs), plt_t );
 
 mask = fcat.mask( proanti_labs ...
-  , @find, {'choice', 'acc'} ...
+  , @find, {trial_type_label, 'acc'} ...
 );
 
 pltdat = proanti(mask, f_ind, t_ind);
@@ -49,7 +54,7 @@ save_p = char( dsp3.plotp({'psd_lines', dsp3.datedir}) );
 do_save = true;
 
 is_pro_anti = true;
-is_pro_minus_anti = true;
+is_pro_minus_anti = false;
 
 bands = dsp3.get_bands( 'map' );
 
@@ -85,7 +90,7 @@ pl.add_smoothing = true;
 % pl.y_lims = [ -2.5e-7, 2.5e-7 ];
 
 mask = fcat.mask( pltlabs...
-  , @find, {'choice', 'beta'} ...
+  , @find, {trial_type_label, 'beta'} ...
   , @findnone, 'errors' ...
 );
 

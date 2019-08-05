@@ -4,6 +4,8 @@ function [coh_dat, coh_labs] = dsp3_linearize_cc_sf(acc, bla, spikes, events ...
 validate( acc, bla, acc_pairs, bla_pairs, events );
 
 outcome_names = { 'self', 'both', 'other', 'none' };
+required_cats = { 'regions', 'channels', 'spike_channels', 'lfp_channels' ...
+  , 'unit_uuid', 'selected_site', 'cc_data_index', 'cc_unit_index' };
 
 acc_stp = 1;
 unit_offset = 0;
@@ -14,8 +16,7 @@ for i = 1:numel(events)
   shared_utils.general.progress( i, numel(events) );
   
   event_labs = fcat.from( events{i}.event.labels );
-  addcat( event_labs ...
-    , {'regions', 'channels', 'spike_channels', 'lfp_channels', 'unit_uuid', 'selected_site'} );
+  addcat( event_labs, required_cats );
   
   if ( isempty(bla{i}) )
     use_coh = acc{acc_stp};
@@ -91,6 +92,8 @@ for i = 1:numel(events)
       region_str = sprintf( '%s_%s', spk_region_info{1}, lfp_region_info{2} );
       channel_str = sprintf( '%s_%s', spk_region_info{2}, lfp_region_info{1} );
       unit_str = sprintf( 'unit_uuid__%d', cell_data_ind + unit_offset );
+      data_index_str = sprintf( 'cc_data_index__%d', i );
+      unit_index_str = sprintf( 'cc_unit_index__%d', cell_data_ind );
       
       setcat( coh_labs, 'regions', region_str, assign_ind );
       setcat( coh_labs, 'channels', channel_str, assign_ind );
@@ -98,6 +101,8 @@ for i = 1:numel(events)
       setcat( coh_labs, 'lfp_channels', lfp_region_info{1}, assign_ind );
       setcat( coh_labs, 'unit_uuid', unit_str, assign_ind );
       setcat( coh_labs, 'selected_site', selected_site_label, assign_ind );
+      setcat( coh_labs, 'cc_data_index', data_index_str, assign_ind );
+      setcat( coh_labs, 'cc_unit_index', unit_index_str, assign_ind );
       
       coh = cat_expanded( 3, cellfun(@(x) x', site, 'un', 0) );
       coh_arrays{stp} = coh;
