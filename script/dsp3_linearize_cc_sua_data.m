@@ -31,7 +31,7 @@ for i = 1:n_events
     
     unit_info = units{j}.name;
     
-    append( spike_labels, make_unit_labels(event_labels, unit_info, mda_filename) );
+    append( spike_labels, make_unit_labels(event_labels, unit_info, mda_filename, j) );
   end
   
   all_spike_labels{i} = spike_labels;
@@ -55,16 +55,17 @@ out.spike_labels = spike_labels;
 
 end
 
-function f = make_unit_labels(event_labels, name, mda_filename)
+function f = make_unit_labels(event_labels, name, mda_filename, index)
 
 reg = name{1};
 chan = name{2};
 
 f = append1( fcat(), event_labels );
 
-additional_categories = { 'regions', 'channels', 'mda_filenames' };
+additional_categories = { 'regions', 'channels', 'mda_filenames', 'unit_index' };
+unit_index = sprintf( 'unit_index__%d', index );
 
 addcat( f, additional_categories );
-setcat( f, additional_categories, {reg, chan, mda_filename} );
+setcat( f, additional_categories, {reg, chan, mda_filename, unit_index} );
 
 end

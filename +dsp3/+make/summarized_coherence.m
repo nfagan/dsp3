@@ -4,8 +4,9 @@ defaults = dsp3.make.defaults.summarized_coherence();
 params = dsp3.parsestruct( defaults, varargin );
 
 coh_file = shared_utils.general.get( files, event_name );
+coh_labels = copy( params.get_labels_func(coh_file) );
 
-[labels, ind] = dsp3.get_subset( coh_file.labels', params.subset );
+[labels, ind] = dsp3.get_subset( coh_labels, params.subset );
 data = coh_file.data(ind, :, :);
 
 [summarized_labels, I] = keepeach( labels', params.summary_spec );

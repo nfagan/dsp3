@@ -45,9 +45,10 @@ end
 
 cats_to_validate = { 'days', 'drugs', 'magnitudes', 'trials', 'trialtypes', 'outcomes' };
 orig_labels = fcat.from( dsp3_load_cc_targacq_labels(conf) );
-labels = dsp3_match_cc_targacq_trial_labels_for_behavior( orig_labels, labels, cats_to_validate );
+matched_labels = dsp3_match_cc_targacq_trial_labels_for_behavior( orig_labels, labels', cats_to_validate );
 
 save( fullfile(save_p, sprintf('%s.mat', data_type)), 'xs', '-v7.3' );
-save( fullfile(save_p, 'labels.mat'), 'labels' );
+save( fullfile(save_p, 'labels.mat'), 'matched_labels' );
+save( fullfile(save_p, 'non_matched_labels.mat'), 'labels' );
 
 end

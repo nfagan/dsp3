@@ -1,7 +1,6 @@
 function out = coherence(files, event_name, site_pairs, varargin)
 
 defaults = dsp3.make.defaults.coherence();
-defaults.step_size = 0.05;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -15,7 +14,9 @@ renamecat( labels, 'region', 'regions' );
 renamecat( labels, 'channel', 'channels' );
 
 if ( params.reference_subtract )
-  [data, labels] = dsp3.ref_subtract( data, labels' );
+  [data, labels, kept_I] = dsp3.ref_subtract( data, labels' );
+else
+  kept_I = rowmask( labels );
 end
 
 if ( params.filter )
@@ -75,11 +76,14 @@ prune( coh_labels );
 
 out = struct();
 out.params = params;
+out.lfp_params = lfp_file.params;
 out.src_filename = lfp_file.src_filename;
 out.data = coh;
 out.labels = coh_labels;
 out.t = time_series;
 out.f = f;
+out.inds_a = kept_I(vertcat(inds_a{:}));
+out.inds_b = kept_I(vertcat(inds_b{:}));
 
 end
 

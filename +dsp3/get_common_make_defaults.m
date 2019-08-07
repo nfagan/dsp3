@@ -8,6 +8,8 @@ defaults.overwrite = false;
 defaults.append = true;
 defaults.save = true;
 defaults.is_parallel = true;
+defaults.skip_existing = false;
 defaults.config = dsp3.config.load();
+defaults.configure_runner_func = @(varargin) 1;
 
 end

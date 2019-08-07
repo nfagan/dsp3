@@ -4,9 +4,11 @@ defaults = dsp3.get_common_make_defaults();
 params = dsp3.parsestruct( defaults, varargin );
 
 gaze_p = fullfile( dsp3.dataroot(params.config), 'data', 'gaze' );
-save_p = dsp3.get_intermediate_dir( 'gaze', params.config );
+save_p = char( dsp3.get_intermediate_dir('gaze', params.config) );
 
 labels = shared_utils.io.fload( fullfile(gaze_p, 'labels.mat') );
+non_matched_labels = shared_utils.io.fload( fullfile(gaze_p, 'non_matched_labels.mat') );
+
 data_types = { 't', 'x', 'y' };
 
 [day_I, day_C] = findall( labels, 'days' );
@@ -25,11 +27,13 @@ for i = 1:numel(data_types)
     
     day_ind = day_I{j};
     label_subset = prune( labels(day_ind) );
+    non_matched_label_subset = prune( non_matched_labels(day_ind) );
     data_subset = data(day_ind, :);
     
     pair = struct();
     pair.data = data_subset;
     pair.labels = label_subset;
+    pair.non_matched_labels = non_matched_label_subset;
     pair.data_type = data_types{i};
     pair.src_filename = day_C{j};
     

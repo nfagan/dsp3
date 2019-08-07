@@ -25,4 +25,12 @@ runner.output_directory = char( dsp3.get_intermediate_dir(output, conf) );
 runner.filter_files_func = ...
   @(files) shared_utils.io.filter_files( files, params.files_containing, params.files_not_containing );
 
+if ( isfield(params, 'skip_existing') && params.skip_existing )
+  runner.set_skip_existing_files();
+end
+
+if ( isfield(params, 'configure_runner_func') )
+  params.configure_runner_func( runner );
+end
+
 end

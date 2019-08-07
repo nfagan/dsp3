@@ -1,4 +1,4 @@
-function aligned_lfp_custom_events(files, picto_event_times, picto_event_labels, consolidated, varargin)
+function out = aligned_lfp_custom_events(files, picto_event_times, picto_event_labels, consolidated, varargin)
 
 defaults = dsp3.make.defaults.aligned_lfp();
 params = dsp3.parsestruct( defaults, varargin );
@@ -18,9 +18,7 @@ max_session_t = max( lfp_file.t );
 
 picto_event_times(picto_event_times == 0) = nan;
 
-plex_event_times = shared_utils.sync.cinterp( picto_event_times, picto_times, plex_times, true );
-
-plex_events = plex_event_times(:, event_col);
+plex_events = shared_utils.sync.cinterp( picto_event_times, picto_times, plex_times, true );
 % Discard events that occur after the end of recording.
 plex_events(plex_events > max_session_t) = nan;
 
@@ -89,14 +87,17 @@ end
 
 t_series = (0:(span_samples-1)) + params.min_t*lfp_file.sample_rate;
 
+event_inds = repmat( reshape(1:num_events, [], 1), num_channels, 1 );
+
 out = struct();
 out.src_filename = lfp_file.src_filename;
 out.params = params;
 out.sample_rate = lfp_file.sample_rate;
 out.data = aligned_mat;
 out.t = t_series;
-out.labels = make_labels( lfp_file, event_labels, params );
+out.labels = make_labels( lfp_file, picto_event_labels, params );
 out.has_partial_data = repmat( missing_full_stop | missing_full_start, num_channels, 1 );
+out.event_ind = event_inds;
 
 end
 

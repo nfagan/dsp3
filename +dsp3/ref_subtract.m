@@ -1,4 +1,4 @@
-function [newdata, newlabels] = ref_subtract(data, labels, mask)
+function [newdata, newlabels, rest_I] = ref_subtract(data, labels, mask)
 
 if ( nargin < 3 )
   mask = rowmask( labels );
@@ -16,6 +16,7 @@ newdata = nan( n_trials, notsize(data, 1) );
 newlabels = fcat();
 
 stp = 1;
+rest_I = {};
 
 for i = 1:numel(I)
   ref_ind = find( labels, 'ref', I{i} );  
@@ -38,6 +39,7 @@ for i = 1:numel(I)
     append( newlabels, labels, current_channel_ind );
     
     stp = stp + n_per_channel;
+    rest_I{end+1, 1} = current_channel_ind;
   end
 end
 
@@ -45,5 +47,7 @@ prune( newlabels );
 
 % assert( nnz(isnan(newdata)) == 0, 'Some trials were not subtracted.' );
 assert_ispair( newdata, newlabels );
+
+rest_I = vertcat( rest_I{:} );
 
 end
