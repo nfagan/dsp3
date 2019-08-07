@@ -7,20 +7,20 @@ bands = dsp3.get_bands( 'map' );
 % choice_time_window = [ -250, -100 ];
 % choice_time_window = [ -50, 50 ];
 choice_time_window = [ 0, 150 ];
-cued_time_window = [ 50, 150 ];
+cued_time_window = [ 0, 150 ];
 
 rev_t = 'orig';
 base_subdir = 'choice_on0_new_data';
 
 band_names = { 'new_gamma', 'beta' };
-pro_minus_antis = [false, true];
+pro_minus_antis = [true];
 % pro_minus_antis = [false, true];
 % plot_function_types = { 'box', 'violin', 'bar' };
 plot_function_types = { 'box' };
 
 use_custom_limits = true;
 
-is_new_data = true;
+is_new_data = false;
 
 C = dsp3.numel_combvec( band_names, pro_minus_antis, plot_function_types );
 

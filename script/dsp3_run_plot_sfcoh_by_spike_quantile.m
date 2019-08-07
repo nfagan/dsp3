@@ -5,8 +5,12 @@ conf.PATHS.data_root = '/Volumes/My Passport/NICK/Chang Lab 2016/dsp3/';
 
 %%
 
+is_time_window_meaned = false;
 [band_dat, band_labs] = dsp3_sfq.band_meaned_data( coh, coh_labs', freqs );
-band_dat = nanmean( band_dat(:, mask_gele(t, 0, 150)), 2 );
+
+if ( is_time_window_meaned )
+  band_dat = nanmean( band_dat(:, mask_gele(t, 0, 150)), 2 );
+end
 
 %%
 
@@ -76,6 +80,86 @@ for idx = 1:numel(tile_I)
 end
 
 prune( to_label );
+
+%%  line plot
+
+do_save = true;
+is_pro_minus_anti = true;
+
+save_components = { 'sfcoh_by_quantile', 'by_spikes', dsp3.datedir };
+
+save_p = char( dsp3.plotp(save_components) );
+analysis_p = char( dsp3.analysisp(save_components) );
+
+pl = plotlabeled.make_common();
+pl.x = t;
+pl.smooth_func = @(x) smoothdata(x, 'SmoothingFactor', 0.1);
+pl.add_smoothing = true;
+
+gcats = { 'quantile' };
+pcats = { 'regions', 'bands', 'outcomes' };
+
+proanti_spec = { 'trialtypes', 'bands', 'unit_uuid' };
+proanti_mask = fcat.mask( to_label ...
+  , @find, {'beta', 'new_gamma'} ...
+  , @find, 'selected-site' ...
+);
+
+[proanti_dat, proanti_labs] = dsp3.pro_v_anti( band_dat, to_label', proanti_spec, proanti_mask );
+
+if ( is_pro_minus_anti )
+  [proanti_dat, proanti_labs] = dsp3.pro_minus_anti( proanti_dat, proanti_labs', proanti_spec );
+end
+
+no_nans = find( ~all(isnan(proanti_dat), 2) );
+
+pltdat = proanti_dat(no_nans, :);
+pltlabs = keep( proanti_labs', no_nans );
+
+fig_I = findall( pltlabs, 'bands' );
+
+for ii = 1:numel(fig_I)
+  subset_plt = pltdat(fig_I{ii}, :);
+  subset_labs = pltlabs(fig_I{ii});
+
+  axs = pl.lines( subset_plt, subset_labs, gcats, pcats );
+  shared_utils.plot.set_xlims( axs, [-300, 300] );
+
+  ylabel( axs(1), 'Spike-field coherence' );
+
+  if ( do_save )
+    shared_utils.plot.fullscreen( gcf );
+    dsp3.req_savefig( gcf, save_p, subset_labs, [gcats, pcats], 'lines__' );
+  end
+
+  window_means = nanmean( subset_plt(:, t >= 0 & t <= 150), 2 );
+  quantiles = fcat.parse( cellstr(subset_labs, 'quantile'), 'quantile_' );
+
+  [scatter_I, scatter_C] = findall( subset_labs, pcats );
+  tbls = cell( numel(scatter_I), 1 );
+
+  correlation_types = { 'spearman', 'pearson' };
+
+  for idx = 1:numel(correlation_types)
+    for i = 1:numel(scatter_I)
+      ind = scatter_I{i};
+
+      [rho, p] = corr( quantiles(ind), window_means(ind), 'rows', 'complete', 'type', correlation_types{idx} );
+      tbls{i} = table( rho, p );
+      tbls{i}.Properties.RowNames = fcat.strjoin( scatter_C(:, i), ' | ');
+    end
+
+    tbl_prefix = correlation_types{idx};
+
+    if ( do_save )
+      for i = 1:numel(tbls)
+        tbl_labs = prune( subset_labs(scatter_I{i}) );
+
+        dsp3.req_writetable( tbls{i}, analysis_p, tbl_labs, [gcats, pcats], tbl_prefix );
+      end
+    end
+  end
+end
 
 %%  scatter plot
 

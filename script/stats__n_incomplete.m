@@ -130,6 +130,10 @@ pltlabs = prune( proportion_labels(mask) );
 
 axs = pl.bar( pltdat, pltlabs, xcats, gcats, pcats );
 
+anova_outs = dsp3.anova1( pltdat, pltlabs', {}, 'contexts' ...
+  , 'remove_nonsignificant_comparisons', false ...
+);
+
 % axs = pl.boxplot( pltdat, pltlabs, gcats, pcats );
 
 if ( params.do_save )

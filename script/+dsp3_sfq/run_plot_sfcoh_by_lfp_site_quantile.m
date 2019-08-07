@@ -1,16 +1,31 @@
-function run_plot_sfcoh_by_lfp_site_quantile(coh, coh_labs, freqs, t, psd, psd_labs)
+function run_plot_sfcoh_by_lfp_site_quantile(varargin)
 
-conf = dsp3.config.load();
-conf.PATHS.data_root = '/Volumes/My Passport/NICK/Chang Lab 2016/dsp3/';
+defaults = dsp3.get_common_plot_defaults( dsp3.get_common_make_defaults() );
+defaults.config = dsp3.set_dataroot( '/Volumes/My Passport/NICK/Chang Lab 2016/dsp3/' );
+defaults.time_window_mean = true;
+defaults.coh = [];
+defaults.coh_labs = fcat();
+defaults.freqs = [];
+defaults.t = [];
+defaults.psd = [];
+defaults.psd_labs = fcat();
+
+params = dsp3.parsestruct( defaults, varargin );
+
+conf = params.config;
+coh = params.coh;
 
 coh_t_min = 0;
 coh_t_max = 150;
 
-if ( nargin < 6 )
+if ( isempty(coh) )
   % Load coherence
   [coh, coh_labs, freqs, t] = dsp3_sfq.load_per_day_sfcoh( conf );
   [coh, coh_labs] = dsp3_sfq.band_meaned_data( coh, coh_labs', freqs );
-  coh = nanmean( coh(:, mask_gele(t, coh_t_min, coh_t_max)), 2 );
+  
+  if ( params.time_window_mean )
+    coh = nanmean( coh(:, mask_gele(t, coh_t_min, coh_t_max)), 2 );
+  end
 
   dsp3_sfq.add_spike_lfp_region_labels( coh_labs );
   
@@ -31,6 +46,15 @@ if ( nargin < 6 )
   psd_t_max = 150;
 
   psd = nanmean( psd(:, mask_gele(t, psd_t_min, psd_t_max)), 2 );
+else
+  coh_labs = params.coh_labs';
+  freqs = params.freqs;
+  t = params.t;
+  psd = params.psd;
+  psd_labs = params.psd_labs';
+  
+  assert_ispair( coh, coh_labs );
+  assert_ispair( psd, psd_labs );
 end
 
 [quant_labs, quant_mask, quants_of] = make_quantile_labels( psd, psd_labs' );
@@ -38,7 +62,7 @@ end
 %%
 
 is_pro_minus_anti = true;
-do_save = true;
+do_save = params.do_save;
 
 save_components = { 'sfcoh_by_quantile', 'by_lfp_site', dsp3.datedir };
 plot_p = char( dsp3.plotp(save_components) );
@@ -82,8 +106,69 @@ for i = 1:numel(quant_I)
     [proanti_dat, proanti_labs] = dsp3.pro_minus_anti( proanti_dat, proanti_labs', proanti_spec );
   end
   
-%   box_plot_and_anova( proanti_dat, proanti_labs', band, region, plot_p, analysis_p, do_save );
-  scatter_plot_and_stats( proanti_dat, proanti_labs', band, region, plot_p, analysis_p, do_save );
+  if ( params.time_window_mean )
+  %   box_plot_and_anova( proanti_dat, proanti_labs', band, region, plot_p, analysis_p, do_save );
+    scatter_plot_and_stats( proanti_dat, proanti_labs', band, region, plot_p, analysis_p, do_save );
+  else
+    lines_over_time( proanti_dat, t, proanti_labs', band, region, plot_p, analysis_p, do_save );
+  end
+end
+
+end
+
+function lines_over_time(proanti_dat, t, proanti_labs, band, region, plot_p, analysis_p, do_save)
+
+%%
+pl = plotlabeled.make_common();
+pl.x = t;
+pl.smooth_func = @(x) smoothdata(x, 'SmoothingFactor', 0.75);
+pl.add_smoothing = true;
+  
+gcats = { 'outcomes', 'quantile' };
+pcats = { 'regions', 'bands' };
+
+pltdat = proanti_dat;
+pltlabs = proanti_labs';
+
+axs = pl.lines( pltdat, pltlabs, gcats, pcats );
+shared_utils.plot.set_xlims( axs, [-300, 300] );
+
+window_means = nanmean( proanti_dat(:, t >= 0 & t <= 150), 2 );
+no_nans = find( ~isnan(window_means) );
+quantiles = fcat.parse( cellstr(pltlabs, 'quantile'), 'quantile_' );
+
+[scatter_I, scatter_C] = findall( pltlabs, pcats, no_nans );
+tbls = cell( numel(scatter_I), 1 );
+
+correlation_types = { 'spearman', 'pearson' };
+
+corr_outs = dsp3.corr( quantiles, window_means, pltlabs', pcats ...
+  , 'mask', no_nans ...
+  , 'corr_inputs', {'rows', 'complete', 'type', 'spearman'} ...
+);
+
+for idx = 1:numel(correlation_types)
+  for i = 1:numel(scatter_I)
+    ind = scatter_I{i};
+
+    [rho, p] = corr( quantiles(ind), window_means(ind), 'rows', 'complete', 'type', correlation_types{idx} );
+    tbls{i} = table( rho, p );
+    tbls{i}.Properties.RowNames = fcat.strjoin( scatter_C(:, i), ' | ');
+  end
+  
+  prefix = sprintf( 'lines__quantiles_of_%s_%s_field__', band, region );
+  tbl_prefix = sprintf( '%s__%s', correlation_types{idx}, prefix );
+
+  if ( do_save )
+    shared_utils.plot.fullscreen( gcf );
+    dsp3.req_savefig( gcf, plot_p, pltlabs, [gcats, pcats], prefix );
+
+    for i = 1:numel(tbls)
+      tbl_labs = prune( pltlabs(scatter_I{i}) );
+
+      dsp3.req_writetable( tbls{i}, analysis_p, tbl_labs, pcats, tbl_prefix );
+    end
+  end
 end
 
 end

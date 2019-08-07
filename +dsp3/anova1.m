@@ -35,7 +35,7 @@ function outs = anova1(data, labels, spec, factor, varargin)
 %     Specify `spec` as an empty cell array ({}) to perform the analysis
 %     once on the whole set of `data`.
 %
-%     See also dsp3.ttest2, dsp3.anovan, dsp3.signrank1
+%     See also dsp3.ttest2, dsp3.anovan, dsp3.signrank1, dsp3.corr
 
 assert_ispair( data, labels );
 assert_hascat( labels, csunion(spec, factor) );

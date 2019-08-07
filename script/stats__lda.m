@@ -102,7 +102,7 @@ else
     fs = { fs };
   end
   
-  assert( numel(fs) == numel(params.freq_roi_name), 'Rois must match band names.' ); 
+  assert( numel(fs) == numel(freq_roi_name), 'Rois must match band names.' ); 
   
   for i = 1:numel(fs)
     f_ind = freqs >= fs{i}(1) & freqs <= fs{i}(2);
@@ -114,7 +114,7 @@ else
   end
   
   addcat( ldalabs, 'band' );
-  repset( ldalabs, 'band', params.freq_roi_name );
+  repset( ldalabs, 'band', freq_roi_name );
 end
 
 nrows = size( t_meaned, 1 );
@@ -349,7 +349,7 @@ mean_stats = nanmean( pm_dat(:, stats_t_ind), 2 );
 sr_spec = setdiff( compare_each, {'band', 'regions'} );
 sr_labs = add_target_region_band_labels( pm_labs' );
 
-signrank_outs = dsp3.signrank2( mean_stats, sr_labs', sr_spec, 'beta_region', 'gamma_region' );
+% signrank_outs = dsp3.signrank2( mean_stats, sr_labs', sr_spec, 'beta_region', 'gamma_region' );
 
 end
 
