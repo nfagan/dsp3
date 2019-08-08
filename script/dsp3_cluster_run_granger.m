@@ -1,4 +1,4 @@
-repadd( 'mvgc_1.0' );
+repadd( 'mvgc_v1.0' );
 mvgc_startup;
 
 if ( isempty(gcp('nocreate')) )
