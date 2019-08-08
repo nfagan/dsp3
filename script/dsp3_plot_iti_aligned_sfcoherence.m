@@ -9,7 +9,7 @@ mats = shared_utils.io.findmat( dsp3.get_intermediate_dir('summarized_sfcoherenc
 
 %%
 
-pro_v_anti = true;
+pro_v_anti = false;
 pro_minus_anti = false;
 
 site_mask = fcat.mask( labels ...
@@ -35,6 +35,7 @@ end
 
 do_save = true;
 match_limits = true;
+per_outcome = false;
 save_p = char( dsp3.plotp({'iti_aligned_spectra', dsp3.datedir}) );
 
 f_ind = freqs >= 10 & freqs <= 100;
@@ -56,6 +57,10 @@ pcats = { 'regions', 'outcomes', 'trialtypes', 'looks_to', 'duration' };
 
 if ( pro_v_anti )
   fig_cats = setdiff( fig_cats, 'duration' );
+end
+
+if ( ~per_outcome )
+  pcats = setdiff( pcats, 'outcomes' );
 end
 
 fig_I = findall( plt_labs, fig_cats, plt_mask );
