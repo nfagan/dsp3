@@ -40,7 +40,7 @@ for i = 1:numel(pair_I)
     end
     
     append( var_labs, tmp_var_labs );
-    trial_labs = [trial_labs; repmat({tmp_trial_labs}, length(tmp_formatted), 1)];
+    trial_labs = [trial_labs; repmat({tmp_trial_labs}, length(tmp_var_labs), 1)];
     var_id = var_id + 1;
   end
 end
