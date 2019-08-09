@@ -23,6 +23,7 @@ defaults.pro_v_anti_lines_are = 'p';
 defaults.pro_v_anti_ylims = [];
 defaults.lines_v_null_ylims = [];
 defaults.make_figs = true;
+defaults.site_smooth_func = @(x) x;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -535,6 +536,9 @@ for i = 1:numel(p_i)
   end
   
   all_ps{i} = dsp3.fdr( ps );
+  
+  first = rowop( first, arrayfun(@identity, 1:rows(first), 'un', 0), params.site_smooth_func );
+  sec = rowop( sec, arrayfun(@identity, 1:rows(first), 'un', 0), params.site_smooth_func );
   
   mean1 = plotlabeled.nanmean( first );
   mean2 = plotlabeled.nanmean( sec );

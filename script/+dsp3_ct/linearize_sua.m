@@ -53,25 +53,3 @@ for i = 1:numel(events)
 end
 
 end
-
-function ts = get_align_ts(align_ts, align_labels, evt_labels)
-
-ind = find( align_labels, combs(evt_labels, 'session_ids') );
-assert( ~isempty(ind), 'No matching session' );
-ts = align_ts(ind, :);
-
-end
-
-function ts = do_alignment(align_ts, key, evt_ts)
-
-plex = align_ts(:, key('plex'));
-picto = align_ts(:, key('picto'));
-
-ts = nan( size(evt_ts) );
-evt_ts(evt_ts == 0) = nan;
-
-for i = 1:size(evt_ts, 2)
-  ts(:, i) = shared_utils.sync.cinterp( evt_ts(:, i), picto, plex );
-end
-
-end

@@ -24,14 +24,14 @@ plot_p = char( dsp3.plotp({'cell_type_compare_baseline', dsp3.datedir}) );
 
 %%
 
-is_reward_only = false;
+is_reward_only = true;
 
 if ( is_reward_only )
-  is_choices = [ true, false ];
+  is_choices = [ true ];
   use_or_rewards = false;
 else
   is_choices = [ true ];
-  use_or_rewards = [ true ];
+  use_or_rewards = [ false ];
 end
 
 use_combs = dsp3.numel_combvec( is_choices, use_or_rewards );
@@ -221,8 +221,4 @@ plot_mask = fcat.mask( prop_labels ...
 
 axs = pl.bar( props(plot_mask), prop_labels(plot_mask), xcats, gcats, pcats );
 
-
-
-
-
-
+end

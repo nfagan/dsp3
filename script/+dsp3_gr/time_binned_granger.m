@@ -45,14 +45,21 @@ for i = 1:numel(pair_I)
   pair_ind = pair_I{i};
   combined = vertcat( var_data{pair_ind} );
   
+  num_combined = size( combined, 1 );
   num_samples = size( combined, 2 );
   bin_inds = shared_utils.vector.slidebin( 1:num_samples, win, step, true );
-  
-  tmp_granger = [];
-  tmp_labs = fcat();
+
+  src_dest_inds = combvec( 1:num_combined, 1:num_combined );
+  same_inds = src_dest_inds(1, :) == src_dest_inds(2, :);
+  src_dest_inds(:, same_inds) = [];
+
+  num_combs = size( src_dest_inds, 2 );
   
   [subset_I, subset_labs] = ...
     get_and_validate_trial_subset_indices( trial_labs, subsets_are, pair_ind, params.trial_mask_inputs );
+
+  tmp_granger = nan( num_combs * numel(subset_I), numel(freqs), numel(bin_inds) );
+  tmp_labs = fcat();
   
   for idx = 1:numel(subset_I)
     if ( params.verbose )
@@ -60,19 +67,12 @@ for i = 1:numel(pair_I)
     end
     
     subset_ind = subset_I{idx};
+    time_bin_granger = nan( num_combs, numel(freqs), numel(bin_inds) );
     
-    for j = 1:numel(bin_inds)    
+    parfor j = 1:numel(bin_inds)
       if ( params.verbose )
         fprintf( '\n     %d of %d', j, numel(bin_inds) );
       end
-      
-      num_combined = size( combined, 1 );
-      
-      src_dest_inds = combvec( 1:num_combined, 1:num_combined );
-      same_inds = src_dest_inds(1, :) == src_dest_inds(2, :);
-      src_dest_inds(:, same_inds) = [];
-      
-      num_combs = size( src_dest_inds, 2 );
       
       X = combined(:, bin_inds{j}, subset_ind);
 
@@ -84,12 +84,6 @@ for i = 1:numel(pair_I)
         warning( err.message );
         granger = nan( num_combined, num_combined, numel(freqs) );
       end
-
-      if ( j == 1 && idx == 1 )
-        tmp_granger = nan( num_combs * numel(subset_I), numel(freqs), numel(bin_inds) );
-      end
-      
-      stp = 1;
       
       for k = 1:num_combs
         comb_inds = src_dest_inds(:, k);
@@ -100,30 +94,20 @@ for i = 1:numel(pair_I)
         % rows are dest, cols are source
         src_to_targ = squeeze( granger(ind_a, ind_b, :) );
 
-        assign_stp = stp + (idx-1) * num_combs;
-        tmp_granger(assign_stp, :, j) = src_to_targ;
-        stp = stp + 1;
-
-        if ( j == 1 )
-          src_ind = pair_ind(ind_b);
-          dest_ind = pair_ind(ind_a);
-
-          append1( tmp_labs, pair_labs, i );
-
-          for hh = 1:numel(to_label)   
-            src_label = char( cellstr(var_labs, to_label{hh}, src_ind) );
-            dest_label = char( cellstr(var_labs, to_label{hh}, dest_ind) );
-
-            if ( ~strcmp(src_label, dest_label) )
-              joined_label = sprintf( '%s_%s', src_label, dest_label );
-              setcat( tmp_labs, to_label{hh}, joined_label, length(tmp_labs) );
-            end
-          end
-
-          conditionally_apply_labels( tmp_labs, subset_labs, length(tmp_labs), idx );
-        end
+        time_bin_granger(k, :, j) = src_to_targ;
       end
     end
+
+    for j = 1:num_combs
+      dest_ind = pair_ind(src_dest_inds(1, j));
+      src_ind = pair_ind(src_dest_inds(2, j));
+
+      base_labs = make_labels( pair_labs, i, src_ind, dest_ind, var_labs, to_label, subset_labs, idx );
+      append( tmp_labs, base_labs );
+    end
+
+    assign_stp = ((idx-1) * num_combs + 1):(idx*num_combs);
+    tmp_granger(assign_stp, :, :) = time_bin_granger;
   end
   
   tot_dat{i} = tmp_granger;
@@ -137,6 +121,24 @@ outs.data = vertcat( tot_dat{:} );
 outs.labels = prune( vertcat(fcat(), tot_labs{:}) );
 outs.t = conditional( @() isempty(outs.data), @() [], @() t{1} );
 outs.f = conditional( @() isempty(outs.data), @() [], @() freqs );
+
+end
+
+function out_labs = make_labels(pair_labs, pair_i, src_ind, dest_ind, var_labs, to_label, subset_labs, idx)
+
+out_labs = append1( fcat(), pair_labs, pair_i );
+
+for i = 1:numel(to_label)   
+  src_label = char( cellstr(var_labs, to_label{i}, src_ind) );
+  dest_label = char( cellstr(var_labs, to_label{i}, dest_ind) );
+
+  if ( ~strcmp(src_label, dest_label) )
+    joined_label = sprintf( '%s_%s', src_label, dest_label );
+    setcat( out_labs, to_label{i}, joined_label, length(out_labs) );
+  end
+end
+
+conditionally_apply_labels( out_labs, subset_labs, length(out_labs), idx );
 
 end
 

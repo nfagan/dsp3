@@ -1,4 +1,4 @@
-function outs = ranksum(data, labels, spec, a, b, varargin)
+function [outs, I] = ranksum(data, labels, spec, a, b, varargin)
 
 %   RANKSUM -- Wilcoxon rank sum test for equal medians, for each subset.
 %
