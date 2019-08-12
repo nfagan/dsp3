@@ -67,7 +67,12 @@ for i = 1:numel(I)
   ind_a = find( labels, a, I{i} );
   ind_b = find( labels, b, I{i} );
   
-  [p, ~, stats] = ranksum( rowref(data, ind_a), rowref(data, ind_b), ranksum_inputs{:} );
+  try
+    [p, ~, stats] = ranksum( rowref(data, ind_a), rowref(data, ind_b), ranksum_inputs{:} );
+  catch err
+    warning( err.message );
+    stats = struct( 'zval', nan, 'ranksum', nan );
+  end
   
   stats.p = p;
   

@@ -171,16 +171,60 @@ if ( do_save )
   end
 end
 
-%%  lines
-
-do_save = false;
-
-ylims = [];
+%%  stat frequency windows
 
 f_ind = freqs >= 10 & freqs <= 80;
 t_ind = t >= 0 & t <= 150;
 
-over_freq = true;
+plt_mask = fcat.mask( tmp_labs ...
+  , @find, {'long_enough__true'} ...
+);
+
+stat_coh = tmp_coh(plt_mask, f_ind, t_ind);
+stat_labs = prune( tmp_labs(plt_mask) );
+
+stat_coh = nanmean( stat_coh, 3 );
+[stat_coh, stat_labs] = dsp3.get_band_means( stat_coh, stat_labs, freqs(f_ind), dsp3.get_bands('map') );
+
+rs_outs = dsp3.ranksum( stat_coh, stat_labs, {'outcomes', 'trialtypes', 'regions', 'bands'} ...
+  , 'monkey - no_look', 'bottle - no_look' ...
+  , 'mask', find(stat_labs, {'beta', 'new_gamma'}) ...
+);
+
+ind1 = find( rs_outs.rs_labels, {'new_gamma', 'acc_bla'} );
+ind2 = find( rs_outs.rs_labels, {'beta', 'bla_acc'} );
+
+outs = rs_outs;
+[outs.rs_tables, outs.rs_labels] = indexpair( outs.rs_tables, outs.rs_labels', [ind1; ind2] );
+
+%%  lines
+
+over_freqs = [ true, false ];
+smoothings = [ true, false ];
+
+plt_combs = dsp3.numel_combvec( over_freqs, smoothings );
+
+do_save = true;
+
+for idx = 1:size(plt_combs, 2)
+  
+use_coh = tmp_coh;
+use_labs = tmp_labs';
+
+prefix = '';
+ylims = [];
+over_freq = over_freqs(plt_combs(1, idx));
+is_smoothed = smoothings(plt_combs(2, idx));
+
+f_ind = freqs >= 10 & freqs <= 80;
+
+if ( over_freq )
+  t_ind = t >= 0 & t <= 150;
+else
+  t_ind = t >= -300 & t <= 300;
+  
+  [use_coh, use_labs] = dsp3.get_band_means( use_coh, use_labs', freqs, dsp3.get_bands('map') );
+end
 
 fig_cats = { 'trialtypes', 'outcomes' };
 gcats = { 'looks_to' };
@@ -191,13 +235,22 @@ if ( ~per_outcome )
   pcats = setdiff( pcats, 'outcomes' );
 end
 
+if ( ~over_freq )
+  fig_cats{end+1} = 'bands';
+  pcats{end+1} = 'bands';
+end
+
 formats = { 'epsc', 'png', 'fig', 'svg' };
 
-plt_mask = fcat.mask( tmp_labs ...
+plt_mask = fcat.mask( use_labs ...
   , @find, {'long_enough__true'} ...
 );
 
-fig_I = findall_or_one( tmp_labs, fig_cats, plt_mask );
+if ( ~over_freq )
+  plt_mask = find( use_labs, {'beta', 'new_gamma'}, plt_mask );
+end
+
+fig_I = findall_or_one( use_labs, fig_cats, plt_mask );
 
 store_labs = cell( size(fig_I) );
 store_axs = cell( size(fig_I) );
@@ -205,26 +258,36 @@ figs = gobjects( size(fig_I) );
 
 for i = 1:numel(fig_I)
   pl = plotlabeled.make_common();
+  pl.smooth_func = @(x) smoothdata(x, 'smoothingfactor', 0.5 );
+  pl.add_smoothing = is_smoothed;
+  
+  if ( ~isempty(ylims) )
+    pl.y_lims = ylims;
+  end
   
   fig = figure(i);
   pl.fig = fig;
   
-  plt_coh = tmp_coh(fig_I{i}, f_ind, t_ind);
-  plt_labs = prune( tmp_labs(fig_I{i}) );
+  plt_labs = prune( use_labs(fig_I{i}) );
   
   if ( over_freq )
+    plt_coh = use_coh(fig_I{i}, f_ind, t_ind);
     plt_coh = squeeze( nanmean(plt_coh, 3) );
     x = freqs(f_ind);
   else
-    plt_coh = squeeze( nanmean(plt_coh, 2) );
+    plt_coh = use_coh(fig_I{i}, t_ind);
     x = t(t_ind);
   end
   
   pl.x = x;
 
-  axs = pl.lines( plt_coh, plt_labs, gcats, pcats );
-  shared_utils.plot.hold( axs, 'on' );
-  
+  [axs, hs, inds] = pl.lines( plt_coh, plt_labs, gcats, pcats );
+%   shared_utils.plot.hold( axs, 'on' );
+
+  dsp3.compare_series( axs, inds, plt_coh, @ranksum ...
+    , 'x', x ...
+  );
+
   store_axs{i} = axs(:);
   store_labs{i} = plt_labs;
   figs(i) = fig;
@@ -238,12 +301,19 @@ else
   shared_utils.plot.set_ylims( axs, ylims );
 end
 
+smooth_prefix = ternary( is_smoothed, 'smoothed', 'nonsmoothed' );
+freq_prefix = ternary( over_freq, 'overfreq', 'overtime' );
+
 if ( do_save )
+  use_prefix = sprintf( '%s-%s-%s', smooth_prefix, freq_prefix, prefix );
+  
   for i = 1:numel(fig_I)
     line_p = fullfile( plot_p, 'lines' );
     shared_utils.plot.fullscreen( figs(i) );
-    dsp3.req_savefig( figs(i), line_p, store_labs{i}, pcats, '', formats ); 
+    dsp3.req_savefig( figs(i), line_p, store_labs{i}, pcats, use_prefix, formats ); 
   end
+end
+
 end
 
 %%  boxes / lines

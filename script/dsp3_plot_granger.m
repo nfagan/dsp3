@@ -85,7 +85,13 @@ for idx = 1:2
     plt_dat = dat(fig_ind, :);
     plt_labs = prune( labs(fig_ind) );
     
-    axs = pl.lines( plt_dat, plt_labs, gcats, pcats );
+    [axs, ~, inds] = pl.lines( plt_dat, plt_labs, gcats, pcats );
+    
+    dsp3.compare_series( axs, inds, plt_dat, @ranksum ...
+      , 'x', pl.x ...
+      , 'fig', pl.fig ...
+    );
+    
     figs(i) = pl.fig;
     all_axs{i} = axs;
     fig_labs{i} = plt_labs;
