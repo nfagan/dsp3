@@ -1,14 +1,25 @@
-function [banddat, bandlabs, I] = get_band_means(data, labels, freqs, bands, bandnames)
+function [banddat, bandlabs, I] = get_band_means(data, labels, freqs, bands, bandnames, sfunc)
 
 fdim = 2;
 tdim = 3;
 
-narginchk( 4, 5 );
+narginchk( 4, 6 );
 
-if ( nargin == 5 )
-  assert( numel(bands) == numel(bandnames), 'Bands must match bandnames.' );
-else
-  shared_utils.assertions.assert__isa( bands, 'containers.Map', 'the band map' );
+sfunc = @nanmean;
+
+if ( nargin == 4 )
+  validateattributes( bands, {'containers.Map'}, {}, mfilename, 'bands' );
+elseif ( nargin == 5 )
+  if ( isa(bands, 'cell') )
+    validateattributes( bandnames, {'cell'}, {}, mfilename, 'band names' );
+  else
+    validateattributes( bands, {'containers.Map'}, {}, mfilename, 'bands' );
+    validateattributes( bandnames, {'function_handle'}, {}, mfilename, 'summary function' );
+    sfunc = bandnames;
+  end
+end
+
+if ( isa(bands, 'containers.Map') )
   bandnames = keys( bands );
   bands = values( bands );
 end
@@ -34,7 +45,7 @@ clns = colons( ndims(data)-1 );
 for i = 1:numel(bands)
   f_ind = freqs >= bands{i}(1) & freqs <= bands{i}(2);
   
-  roi_data = squeeze( nanmean(dimref(data, f_ind, fdim), fdim) );
+  roi_data = squeeze( sfunc(dimref(data, f_ind, fdim), fdim) );
   
   rinds = stp:stp+rdat-1;
   

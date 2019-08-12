@@ -62,21 +62,27 @@ tmp_labs = site_labs';
 do_save = false;
 plot_p = char( dsp3.plotp({'sfcoh_by_gaze', dsp3.datedir}) );
 
-pro_v_anti = true;
-pro_minus_anti = true;
-minus_no_look = false;
+pro_v_anti = false;
+pro_minus_anti = false;
+per_outcome = false;
 
-clims = [-0.02, 0.02];
+if ( ~per_outcome )
+  collapsecat( tmp_labs, 'outcomes' );
+end
+
+minus_no_look = true;
+
+% clims = [-0.02, 0.02];
 
 proanti_each = setdiff( look_spec, 'outcomes' );
-look_each = setdiff( look_spec, 'looks_to' );
+look_each = setdiff( look_spec, {'looks_to', 'outcomes'} );
 
 if ( minus_no_look )
   [bottle_coh, bottle_labs] = ...
-    dsp3.sbop( tmp_coh, tmp_labs', look_each, 'bottle', 'no_look', @minus, @(x) nanmean(x, 1), find(tmp_labs, 'none') );
+    dsp3.sbop( tmp_coh, tmp_labs', look_each, 'bottle', 'no_look', @minus, @(x) nanmean(x, 1) );
   setcat( bottle_labs, 'looks_to', 'bottle - no_look' );
   [monk_coh, monk_labs] = ...
-    dsp3.sbop( tmp_coh, tmp_labs', look_each, 'monkey', 'no_look', @minus, @(x) nanmean(x, 1), find(tmp_labs, 'other') );
+    dsp3.sbop( tmp_coh, tmp_labs', look_each, 'monkey', 'no_look', @minus, @(x) nanmean(x, 1) );
   setcat( monk_labs, 'looks_to', 'monkey - no_look' );
   
   [tmp_coh, tmp_labs] = appendpair( bottle_coh, bottle_labs', monk_coh, monk_labs' );
@@ -89,9 +95,15 @@ if ( pro_minus_anti )
   [tmp_coh, tmp_labs] = dsp3.pro_minus_anti( tmp_coh, tmp_labs', proanti_each );
 end
 
+if ( ~per_outcome )
+  [tmp_labs, look_I] = keepeach( tmp_labs', proanti_each );
+  tmp_coh = bfw.row_nanmean( tmp_coh, look_I );
+end
+
 %%
 
-do_save = true;
+do_save = false;
+clims = [];
 
 f_ind = freqs >= 10 & freqs <= 100;
 t_ind = t >= -300 & t <= 300;
@@ -99,8 +111,12 @@ t_ind = t >= -300 & t <= 300;
 plt_f = freqs(f_ind);
 plt_t = t(t_ind);
 
-fig_cats = { 'trialtypes'};
+fig_cats = { 'trialtypes', 'regions' };
 pcats = { 'outcomes', 'regions', 'trialtypes', 'looks_to' };
+
+if ( ~per_outcome )
+  pcats = setdiff( pcats, 'outcomes' );
+end
 
 formats = { 'epsc', 'png', 'fig', 'svg' };
 
@@ -115,6 +131,7 @@ store_axs = cell( size(fig_I) );
 figs = gobjects( size(fig_I) );
 
 pl = plotlabeled.make_spectrogram( plt_f, plt_t );
+pl.sort_combinations = true;
 
 for i = 1:numel(fig_I)
   fig = figure(i);
@@ -155,7 +172,9 @@ end
 
 %%  lines
 
-do_save = true;
+do_save = false;
+
+ylims = [];
 
 f_ind = freqs >= 10 & freqs <= 80;
 t_ind = t >= 0 & t <= 150;
@@ -163,8 +182,13 @@ t_ind = t >= 0 & t <= 150;
 over_freq = true;
 
 fig_cats = { 'trialtypes', 'outcomes' };
-gcats = { 'regions' };
-pcats = { 'trialtypes', 'looks_to', 'outcomes' };
+gcats = { 'looks_to' };
+pcats = { 'trialtypes', 'regions', 'outcomes' };
+
+if ( ~per_outcome )
+  fig_cats = setdiff( fig_cats, 'outcomes' );
+  pcats = setdiff( pcats, 'outcomes' );
+end
 
 formats = { 'epsc', 'png', 'fig', 'svg' };
 
@@ -207,10 +231,10 @@ end
 
 axs = vertcat( store_axs{:} );
 
-if ( isempty(clims) )
-  shared_utils.plot.match_clims( axs );
+if ( isempty(ylims) )
+  shared_utils.plot.match_ylims( axs );
 else
-  shared_utils.plot.set_clims( axs, clims );
+  shared_utils.plot.set_ylims( axs, ylims );
 end
 
 if ( do_save )
@@ -223,7 +247,7 @@ end
 
 %%  boxes / lines
 
-do_save = true;
+do_save = false;
 prefix = 'lines__';
 
 over_time = true;
@@ -242,6 +266,11 @@ fig_cats = { 'trialtypes', 'outcomes', 'bands' };
 gcats = { 'looks_to' };
 pcats = { 'trialtypes', 'regions', 'outcomes', 'bands' };
 
+if ( ~per_outcome )
+  fig_cats = setdiff( fig_cats, 'outcomes' );
+  pcats = setdiff( pcats, 'outcomes' );
+end
+
 formats = { 'epsc', 'png', 'fig', 'svg' };
 
 use_coh = tmp_coh;
@@ -251,7 +280,7 @@ use_labs = tmp_labs';
 
 plt_mask = fcat.mask( use_labs ...
   , @find, {'long_enough__true'} ...
-  , @find, {'beta', 'new_gamma'} ...
+  , @find, {'beta'} ...
 );
 
 fig_I = findall_or_one( use_labs, fig_cats, plt_mask );

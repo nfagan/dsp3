@@ -1,4 +1,8 @@
-function [site_coh, site_labs, site_I] = site_meaned_sfcoh(data, labels, mask, sites_each)
+function [site_coh, site_labs, site_I] = site_meaned_sfcoh(data, labels, mask, sites_each, row_func)
+
+if ( nargin < 5 )
+  row_func = @bfw.row_nanmean;
+end
 
 if ( nargin < 3 || (iscell(mask) && isempty(mask)) )
   mask = rowmask( labels );
@@ -12,6 +16,6 @@ assert_ispair( data, labels );
 
 [site_labs, site_I] = keepeach( labels, sites_each, mask );
 
-site_coh = bfw.row_nanmean( data, site_I );
+site_coh = row_func( data, site_I );
 
 end
