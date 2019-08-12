@@ -4,10 +4,13 @@ defaults = dsp3.get_common_make_defaults();
 defaults.get_data_func = @(x) x.data;
 defaults.get_labels_func = @(x) fcat.from(x.labels);
 defaults.get_identifier_func = @(varargin) char(varargin{1}('days'));
+defaults.get_t_func = @dsp3.get_matrix_t;
 defaults.mask_func = @default_mask_func;
 defaults.max_model_order = 32;
 defaults.regression_method = 'LWR';
 defaults.site_pairs = [];
+defaults.use_all_time = true;
+defaults.time_window = [0, 150];
 
 inputs = { fullfile('original_aligned_lfp', event_name) };
 
@@ -39,6 +42,11 @@ function out = main(files, event_name, site_pairs, params)
 lfp_file = shared_utils.general.get( files, event_name );
 data = params.get_data_func( lfp_file );
 labels = params.get_labels_func( lfp_file );
+
+if ( ~params.use_all_time )
+  t = params.get_t_func( lfp_file );
+  data = data(:, t >= params.time_window(1) & t <= params.time_window(2));
+end
 
 base_mask = params.mask_func( labels );
 regression_method = params.regression_method;
