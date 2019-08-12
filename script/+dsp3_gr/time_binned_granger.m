@@ -75,26 +75,36 @@ for i = 1:numel(pair_I)
       end
       
       X = combined(:, bin_inds{j}, subset_ind);
+      model_success = true;
 
       try
         [A, sig] = tsdata_to_var( X, model_order, regression_method );
         [G, info] = var_to_autocov( A, sig, max_lags );
         granger = autocov_to_spwcgc( G, n_freqs );
+        
+        if ( isempty(granger) )
+          error( 'Var model failed.' );
+        end
       catch err
         warning( err.message );
-        granger = nan( num_combined, num_combined, numel(freqs) );
+        model_success = false;
       end
       
-      for k = 1:num_combs
-        comb_inds = src_dest_inds(:, k);
-        
-        ind_a = comb_inds(1);
-        ind_b = comb_inds(2);
+      if ( model_success )
+        for k = 1:num_combs
+          comb_inds = src_dest_inds(:, k);
 
-        % rows are dest, cols are source
-        src_to_targ = squeeze( granger(ind_a, ind_b, :) );
+          ind_a = comb_inds(1);
+          ind_b = comb_inds(2);
 
-        time_bin_granger(k, :, j) = src_to_targ;
+          assert( ind_a > 0 && ind_a <= size(granger, 1) );
+          assert( ind_b > 0 && ind_b <= size(granger, 2) );
+
+          % rows are dest, cols are source
+          src_to_targ = squeeze( granger(ind_a, ind_b, :) );
+
+          time_bin_granger(k, :, j) = src_to_targ;
+        end
       end
     end
 
