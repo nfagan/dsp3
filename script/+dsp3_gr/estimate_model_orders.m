@@ -29,10 +29,12 @@ outputs = shared_utils.pipeline.extract_outputs_from_results( results );
 
 if ( isempty(outputs) )
   outs = struct();
+  outs.params = params;
   outs.model_orders = [];
   outs.labels = fcat();
 else
   outs = shared_utils.struct.soa( outputs );
+  outs.params = params;
 end
 
 end
