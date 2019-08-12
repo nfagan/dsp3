@@ -132,6 +132,7 @@ figs = gobjects( size(fig_I) );
 
 pl = plotlabeled.make_spectrogram( plt_f, plt_t );
 pl.sort_combinations = true;
+pl.add_smoothing = true;
 
 for i = 1:numel(fig_I)
   fig = figure(i);
@@ -276,7 +277,7 @@ formats = { 'epsc', 'png', 'fig', 'svg' };
 use_coh = tmp_coh;
 use_labs = tmp_labs';
 
-[use_coh, use_labs] = dsp3.get_band_means( use_coh, use_labs', freqs, dsp3.get_bands('map') );
+[use_coh, use_labs] = dsp3.get_band_means( use_coh, use_labs', freqs, dsp3.get_bands('map'), @nanmedian );
 
 plt_mask = fcat.mask( use_labs ...
   , @find, {'long_enough__true'} ...
@@ -291,6 +292,7 @@ figs = gobjects( size(fig_I) );
 
 for i = 1:numel(fig_I)
   pl = plotlabeled.make_common();
+  pl.summary_func = @plotlabeled.nanmedian;
   
   fig = figure(i);
   pl.fig = fig;
