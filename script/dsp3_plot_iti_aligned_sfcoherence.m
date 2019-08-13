@@ -15,6 +15,7 @@ defaults.line_ylims = [];
 defaults.prefix = '';
 defaults.line_smooth_func = @(x) x;
 defaults.lines_over_freq = false;
+defaults.monkey_minus_bottle = false;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -51,6 +52,7 @@ end
 
 pro_v_anti = params.pro_v_anti;
 pro_minus_anti = params.pro_minus_anti;
+is_monkey_minus_bottle = params.monkey_minus_bottle;
 
 site_mask = fcat.mask( use_labs ...
   , @findnone, 'errors' ...
@@ -70,11 +72,70 @@ if ( pro_minus_anti )
   [site_coh, site_labs] = dsp3.pro_minus_anti( site_coh, site_labs, proanti_spec );
 end
 
+if ( is_monkey_minus_bottle )
+  [site_coh, site_labs] = monkey_minus_bottle( site_coh, site_labs, setdiff(site_spec, {'looks_to'}) );
+end
+
 %%
 
 % plot_boxes( site_coh, site_labs', freqs, t, params );
-plot_spectra( site_coh, site_labs', freqs, t, params );
-% plot_lines( site_coh, site_labs', freqs, t, params );
+% plot_spectra( site_coh, site_labs', freqs, t, params );
+plot_lines( site_coh, site_labs', freqs, t, params );
+
+% check_outliers( site_coh, site_labs', freqs, t, params );
+
+end
+
+function [coh, labs] = monkey_minus_bottle(coh, labs, spec, varargin)
+
+[coh, labs] = dsp3.sbop( coh, labs', spec, 'monkey', 'bottle', @minus, @(x) nanmean(x, 1), varargin{:} );
+setcat( labs, 'looks_to', 'monkey - bottle' );
+
+end
+
+function check_outliers(site_coh, site_labs, freqs, t, params)
+
+%%
+t_ind = t >= 0 & t <= 0.15;
+f_ind = freqs >= 27 & freqs <= 30;
+
+plt_f = freqs(f_ind);
+
+by_freq = nanmean( site_coh(:, f_ind, t_ind), 3 );
+mask = fcat.mask( site_labs ...
+  , @findnot, 'no_look' ...
+  , @find, 'bla_acc' ...
+  , @find, 'long_enough__true' ...
+);
+
+save_p = char( dsp3.plotp({'iti_aligned_sfcoh', dsp3.datedir, 'outlier_check'}, params.config) );
+
+for i = 1:size(by_freq, 2)
+  subset = by_freq(mask, i);
+  subset_labs = prune( site_labs(mask) );
+  
+  pcats = { 'regions', 'trialtypes', 'looks_to' };
+  
+  pl = plotlabeled.make_common();
+  [axs, inds] = pl.hist( subset, subset_labs, pcats );
+  xlim( axs, [0, 1] );
+  
+  meds = cellfun( @(x) nanmean(subset(x)), inds );
+  shared_utils.plot.hold( axs, 'on' );
+  
+  for j = 1:numel(meds)
+    shared_utils.plot.add_vertical_lines( axs(j), meds(j) );
+    text( axs(j), meds(j), max(get(axs(j), 'ylim')) - 2, sprintf('M = %0.4f', meds(j)) );
+  end
+  
+  text( axs(1), 0, mean(get(axs(1), 'ylim')), sprintf('F = %0.4f', plt_f(i)) );
+  prefix = sprintf( 'freq__%0.4f', plt_f(i) );
+  
+  if ( params.do_save )
+    shared_utils.plot.fullscreen( gcf );
+    dsp3.req_savefig( gcf, save_p, subset_labs, pcats, prefix );
+  end
+end
 
 end
 
@@ -101,7 +162,7 @@ plt_labs = site_labs';
 plt_coh = site_coh;
 
 plt_mask = fcat.mask( plt_labs ...
-  , @find, {'bottle', 'monkey'} ...
+  , @findnot, {'no_look'} ...
   , @find, 'long_enough__true' ...
 );
 
@@ -190,7 +251,7 @@ if ( ~over_freq )
 end
 
 plt_mask = fcat.mask( plt_labs ...
-  , @find, {'bottle', 'monkey'} ...
+  , @findnot, {'no_look'} ...
   , @find, 'long_enough__true' ...
 );
 
@@ -226,12 +287,13 @@ for i = 1:numel(fig_I)
   pl.x = ternary( over_freq, plt_f, plt_t );
   pl.add_smoothing = true;
   pl.smooth_func = smooth_func;
+%   pl.summary_func = @plotlabeled.nanmedian;
   
   fig_labs = prune( plt_labs(fig_I{i}) );
   
   if ( over_freq )
     fig_coh = plt_coh(fig_I{i}, f_ind, t_ind);
-    fig_coh = squeeze( nanmean(fig_coh, 3) );
+    fig_coh = squeeze( nanmedian(fig_coh, 3) );
   else
     fig_coh = plt_coh(fig_I{i}, t_ind);
   end
@@ -254,9 +316,12 @@ if ( do_save )
     shared_utils.plot.set_ylims( all_axs, ylims );
   end
   
+  freq_prefix = ternary( over_freq, 'freq', 'time' );
+  prefix = sprintf('over-%s-%s', freq_prefix, params.prefix );
+  
   for i = 1:numel(figs)
     shared_utils.plot.fullscreen( figs(i) );
-    dsp3.req_savefig( figs(i), save_p, all_fig_labs{i}, [fig_cats, pcats], params.prefix );
+    dsp3.req_savefig( figs(i), save_p, all_fig_labs{i}, [fig_cats, pcats], prefix);
     close( figs(i) );
   end
 end
@@ -273,7 +338,10 @@ for i = 1:numel(axs)
   inds_ax = inds{i};
   set( ax, 'nextplot', 'add' );
   
-  assert( numel(inds_ax) == 2, 'Expected 2 lines for comparison; got %d.', numel(inds_ax) );
+  if ( numel(inds_ax) ~= 2 )
+    warning( 'Expected 2 lines for comparison; got %d.', numel(inds_ax) );
+    continue;
+  end
   
   for j = 1:size(fig_coh, 2)
     a = fig_coh(inds_ax{1}, j);
@@ -316,7 +384,7 @@ plt_coh = squeeze( nanmean(site_coh(:, :, t_ind), 3) );
 [plt_coh, plt_labs] = dsp3.get_band_means( plt_coh, plt_labs', freqs, dsp3.get_bands('map') );
 
 plt_mask = fcat.mask( plt_labs, find(~isnan(plt_coh)) ...
-  , @find, {'bottle', 'monkey'} ...
+  , @findnot, {'no_look'} ...
   , @find, 'long_enough__true' ...
   , @find, {'beta', 'new_gamma'} ...
 );

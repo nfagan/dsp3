@@ -14,7 +14,7 @@ renamecat( labels, 'region', 'regions' );
 renamecat( labels, 'channel', 'channels' );
 
 if ( params.reference_subtract )
-  [data, labels, kept_I] = dsp3.ref_subtract( data, labels' );
+  [data, labels, kept_I] = params.reference_func( data, labels' );
 else
   kept_I = rowmask( labels );
 end

@@ -146,6 +146,8 @@ out.data = aligned_mat;
 out.t = t_series;
 out.labels = make_labels( lfp_file, event_labels, params );
 out.has_partial_data = repmat( missing_full_stop | missing_full_start, num_channels, 1 );
+out.event_ind = repmat( lfp_file.event_ind(:), num_channels, 1 );
+out.event_times = plex_events;
 
 end
 
