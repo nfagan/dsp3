@@ -11,6 +11,14 @@ psd_mats = shared_utils.io.findmat( full_psd_p );
   , 'get_labels_func', @(x) x.labels ...
 );
 
+prune( dsp3.add_context_labels(psd_labs) );
+
+if ( ~is_choice )
+  setcat( psd_labs, 'contexts', 'context__received', find(psd_labs, {'self', 'both'}) );
+  setcat( psd_labs, 'contexts', 'context__forgone', find(psd_labs, {'other', 'none'}) );
+  prune( psd_labs );
+end
+
 %%
 
 proanti_each = { 'days', 'sites', 'channels', 'regions', 'trialtypes' };
@@ -53,7 +61,7 @@ shared_utils.plot.add_vertical_lines( axs, find(plt_t == 0) ); %#ok
 save_p = char( dsp3.plotp({'psd_lines', dsp3.datedir}) );
 do_save = true;
 
-is_pro_anti = true;
+is_pro_anti = false;
 is_pro_minus_anti = false;
 
 bands = dsp3.get_bands( 'map' );
@@ -90,26 +98,31 @@ pl.add_smoothing = true;
 % pl.y_lims = [ -2.5e-7, 2.5e-7 ];
 
 mask = fcat.mask( pltlabs...
-  , @find, {trial_type_label, 'beta'} ...
+  , @find, {trial_type_label, 'gamma', 'beta'} ...
   , @findnone, 'errors' ...
 );
 
-pltdat = pltdat(mask, t_ind);
-pltlabs = prune( pltlabs(mask) );
+fcats = { 'contexts', 'bands' };
+fig_I = findall_or_one( pltlabs, fcats, mask );
 
-if ( is_pro_minus_anti )
-  gcats = { 'outcomes', 'regions' };
-  pcats = { 'trialtypes', 'bands' };
-else
-  gcats = { 'regions' };
-  pcats = { 'trialtypes', 'bands', 'outcomes' };
-end
+for i = 1:numel(fig_I)
+  pltdat_ = pltdat(fig_I{i}, t_ind);
+  pltlabs_ = prune( pltlabs(fig_I{i}) );
 
-axs = pl.lines( pltdat, pltlabs, gcats, pcats );
+  if ( is_pro_minus_anti )
+    gcats = { 'outcomes', 'regions' };
+    pcats = { 'trialtypes', 'bands' };
+  else
+    gcats = { 'outcomes' };
+    pcats = { 'trialtypes', 'bands', 'regions' };
+  end
 
-if ( do_save )
-  shared_utils.plot.fullscreen( gcf );
-  dsp3.req_savefig( gcf, save_p, pltlabs, pcats );
+  axs = pl.lines( pltdat_, pltlabs_, gcats, pcats );
+
+  if ( do_save )
+    shared_utils.plot.fullscreen( gcf );
+    dsp3.req_savefig( gcf, save_p, pltlabs_, [pcats, fcats] );
+  end
 end
 
 
