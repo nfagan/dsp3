@@ -1,5 +1,9 @@
 repadd( 'chronux', true );
 
+if ( isempty(gcp('nocreate')) )
+  parpool( feature('NumCores') );
+end
+
 conf = dsp3.config.load();
 
 [spike_ts, spike_labels] = dsp3_load_cc_spike_data_for_sfcoherence( conf );
