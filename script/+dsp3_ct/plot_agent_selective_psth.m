@@ -4,6 +4,7 @@ defaults = dsp3.get_common_plot_defaults( dsp3.get_common_make_defaults() );
 defaults.selectivity_subdir = 'cell_type_agent_specificity';
 defaults.selectivity_cat = 'agent_selectivity';
 defaults.rasters_in_separate_figure = false;
+defaults.make_rasters = true;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -23,22 +24,21 @@ mask = fcat.mask( labels ...
 
 [unit_I, unit_C] = findall( labels, {'unit_uuid', 'region'}, mask );
 
+pl_fig = figure(1);
+
 for i = 1:numel(unit_I)
   reg = unit_C{2, i};
   
   smooths = [7, 10];
   
-  for j = 1:numel(smooths)
-    pl_fig = figure(1);
-    clf( pl_fig );
-    
+  for j = 1:numel(smooths)    
     pl = plotlabeled.make_common();
-    pl.fig = figure(1);
+    pl.fig = pl_fig;
     pl.x = t(1, :);
     pl.group_order = { 'self', 'both', 'other', 'none' };
     pl.add_smoothing = true;
     pl.smooth_func = @(x) smooth( x, smooths(j) );
-    pl.add_errors = false;
+    pl.add_errors = true;
 
     gcats = { 'outcomes' };
     pcats = { params.selectivity_cat, 'unit_uuid', 'region' };
@@ -49,7 +49,9 @@ for i = 1:numel(unit_I)
 
     [axs, hs, inds] = pl.lines( pltdat, pltlabs, gcats, pcats );
     
-    raster_fig = add_rasters( axs, hs, inds, plt_rasters, params.rasters_in_separate_figure );
+    if ( params.make_rasters )
+      raster_fig = add_rasters( axs, hs, inds, plt_rasters, params.rasters_in_separate_figure );
+    end
     
     prefix = sprintf( 'smooth_%d', smooths(j) );
     line_prefix = sprintf( 'line-%s', prefix );
@@ -57,10 +59,14 @@ for i = 1:numel(unit_I)
     
     if ( params.do_save )
       plot_p = get_plot_p( params, reg );
-      shared_utils.plot.fullscreen( pl.fig );
+      
+      if ( j == 1 && i == 1 )
+        shared_utils.plot.fullscreen( pl.fig );
+      end
+      
       dsp3.req_savefig( pl.fig, plot_p, prune(pltlabs), pcats, line_prefix );
       
-      if ( params.rasters_in_separate_figure )
+      if ( params.make_rasters && params.rasters_in_separate_figure )
         shared_utils.plot.fullscreen( raster_fig );
         dsp3.req_savefig( raster_fig, plot_p, pltlabs, pcats, raster_prefix );
       end

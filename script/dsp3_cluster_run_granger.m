@@ -5,8 +5,8 @@ if ( isempty(gcp('nocreate')) )
   parpool( feature('NumCores') );
 end
 
-min_slice = 1;
-max_slice = 41;
+min_slice = 50;
+max_slice = 57;
 
 conf = dsp3.config.load();
 save_p = fullfile( dsp3.dataroot(conf), 'analyses', 'granger', dsp3.datedir() );
@@ -16,6 +16,9 @@ event_name = 'targAcq-150-cc';
 
 source_p = dsp3.get_intermediate_dir( fullfile('original_aligned_lfp', event_name), conf );
 use_files = shared_utils.io.filenames( shared_utils.io.findmat(source_p) );
+
+if ( isempty(max_slice) ), max_slice = numel( use_files ); end
+if ( isempty(min_slice) ), min_slice = 1; end
 
 if ( ~isempty(use_files) )
   max_slice = min( numel(use_files), max_slice );
@@ -31,4 +34,6 @@ granger_outs = dsp3_gr.run_granger( event_name, med_model_order ...
   , 'files_containing', use_files ...
 );
 
-save( fullfile(save_p, 'granger.mat'), 'granger_outs', '-v7.3' );
+granger_filename = sprintf( 'granger-%d-%d.mat', min_slice, max_slice );
+
+save( fullfile(save_p, granger_filename), 'granger_outs', '-v7.3' );

@@ -59,7 +59,6 @@ end
 tmp_coh = site_coh;
 tmp_labs = site_labs';
 
-do_save = false;
 plot_p = char( dsp3.plotp({'sfcoh_by_gaze', dsp3.datedir}) );
 
 pro_v_anti = false;
@@ -99,6 +98,21 @@ if ( ~per_outcome )
   [tmp_labs, look_I] = keepeach( tmp_labs', proanti_each );
   tmp_coh = bfw.row_nanmean( tmp_coh, look_I );
 end
+
+%%  save
+
+save_mask = fcat.mask( tmp_labs ...
+  , @find, {'choice', 'selected-site'} ...
+  , @findnone, 'errors' ...
+  , @find, 'long_enough__true' ...
+);
+
+save_p = fullfile( dsp3.dataroot(conf), 'data', 'sfcoh', 'gaze' );
+save_labs = gather( prune(tmp_labs(save_mask)) );
+save_coh = tmp_coh(save_mask, :, :);
+
+save( fullfile(save_p, 'gaze_sf_coherence.mat') ...
+  , 'save_coh', 'save_labs', 'freqs', 't', '-v7.3' );
 
 %%
 
@@ -199,12 +213,12 @@ outs = rs_outs;
 
 %%  lines
 
-over_freqs = [ true, false ];
-smoothings = [ true, false ];
+over_freqs = [ true ];
+smoothings = [ false ];
 
 plt_combs = dsp3.numel_combvec( over_freqs, smoothings );
 
-do_save = true;
+do_save = false;
 
 for idx = 1:size(plt_combs, 2)
   
