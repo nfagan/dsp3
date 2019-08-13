@@ -19,7 +19,6 @@ units_this_session = find( spike_labels, combs(lfp_labels, 'session_ids') );
 
 all_coh = {};
 all_labels = {};
-all_event_inds = {};
 f = [];
 
 for i = 1:numel(reg_combs)
@@ -68,7 +67,6 @@ for i = 1:numel(reg_combs)
     
     all_coh{end+1, 1} = tmp_coh;
     all_labels{end+1, 1} = make_labels( lfp_labels, spike_labels, curr_lfp_ind, curr_spk_ind ); 
-    all_event_inds{end+1, 1} = look_event_ind(curr_match_ind);
   end
 end
 
@@ -80,7 +78,6 @@ out.data = vertcat( all_coh{:} );
 out.labels = vertcat( fcat(), all_labels{:} );
 out.t = t;
 out.f = f;
-out.event_ind = vertcat( all_event_inds{:} );
 
 if ( isempty(out.data) )
   out.t = [];
