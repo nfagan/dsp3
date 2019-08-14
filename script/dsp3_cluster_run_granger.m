@@ -5,8 +5,8 @@ if ( isempty(gcp('nocreate')) )
   parpool( feature('NumCores') );
 end
 
-min_slice = 43;
-max_slice = 44;
+min_slice = 42;
+max_slice = 42;
 
 conf = dsp3.config.load();
 save_p = fullfile( dsp3.dataroot(conf), 'analyses', 'granger', dsp3.datedir() );
@@ -32,6 +32,7 @@ med_model_order = median( model_order_file.model_orders );
 granger_outs = dsp3_gr.run_granger( event_name, med_model_order ...
   , 'is_parallel', false ...
   , 'files_containing', use_files ...
+  , 'verbose', true ...
 );
 
 granger_filename = sprintf( 'granger-%d-%d.mat', min_slice, max_slice );
