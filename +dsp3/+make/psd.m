@@ -40,6 +40,7 @@ if ( ~isempty(windowed_data) )
 else
   time_series = [];
   f = [];
+  complete_psd = [];
 end
 
 num_time_bins = numel( time_series );
