@@ -18,6 +18,7 @@ defaults.sample_rate = 1e3;
 defaults.max_lags = [];
 defaults.verbose = false;
 defaults.min_t = 0;
+defaults.max_min_lags = inf;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -37,7 +38,7 @@ tot_labs = cell( size(pair_I) );
 tot_dat = cell( size(pair_I) );
 t = cell( size(pair_I) );
 
-parfor i = 1:numel(pair_I)
+for i = 1:numel(pair_I)
   if ( params.verbose )
     fprintf( '\n %d of %d', i, numel(pair_I) );
   end
@@ -69,7 +70,7 @@ parfor i = 1:numel(pair_I)
     subset_ind = subset_I{idx};
     time_bin_granger = nan( num_combs, numel(freqs), numel(bin_inds) );
     
-    for j = 1:numel(bin_inds)
+    parfor j = 1:numel(bin_inds)
       if ( params.verbose )
         fprintf( '\n     %d of %d', j, numel(bin_inds) );
       end
@@ -82,7 +83,7 @@ parfor i = 1:numel(pair_I)
         [G, info] = var_to_autocov( A, sig, max_lags );
         granger = autocov_to_spwcgc( G, n_freqs );
         
-        if ( isempty(granger) )
+        if ( isempty(granger) || info.acminlags > params.max_min_lags )
           error( 'Var model failed.' );
         end
       catch err
