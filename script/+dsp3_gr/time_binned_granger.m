@@ -81,9 +81,14 @@ for i = 1:numel(pair_I)
       try
         [A, sig] = tsdata_to_var( X, model_order, regression_method );
         [G, info] = var_to_autocov( A, sig, max_lags );
+        
+        if ( info.acminlags > params.max_min_lags )
+          error( 'Min lags (%d) exceeded threshold (%d).', info.acminlags, params.max_min_lags );
+        end
+        
         granger = autocov_to_spwcgc( G, n_freqs );
         
-        if ( isempty(granger) || info.acminlags > params.max_min_lags )
+        if ( isempty(granger) )
           error( 'Var model failed.' );
         end
       catch err
