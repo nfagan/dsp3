@@ -5,7 +5,7 @@ if ( isempty(gcp('nocreate')) )
   parpool( feature('NumCores') );
 end
 
-min_slice = 42;
+min_slice = 43;
 max_slice = 44;
 
 conf = dsp3.config.load();
