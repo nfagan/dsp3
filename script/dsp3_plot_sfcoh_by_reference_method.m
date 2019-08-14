@@ -66,13 +66,15 @@ band_names = { 'beta', 'new_gamma' };
 
 [band_coh, band_labs] = dsp3.get_band_means( band_coh, labels', f, dsp3.some_bands(band_names), band_names );
 
-fcats = { 'bands' };
-gcats = { 'reference_method', 'outcomes' };
+fcats = {};
 pcats = { 'regions', 'bands' };
+xcats = { 'outcomes' };
+gcats = { 'reference_method' };
 
 pl = plotlabeled.make_common();
-% pl.y_lims = [0.68, 0.71];
-[figs, axs] = pl.figures( @boxplot, band_coh, band_labs, fcats, gcats, pcats );
+pl.x_order = { 'self', 'both', 'other', 'none' };
+pl.y_lims = [0.68, 0.71];
+[figs, axs] = pl.figures( @errorbar, band_coh, band_labs, fcats, xcats, gcats, pcats );
 
 end
 

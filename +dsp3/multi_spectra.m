@@ -1,4 +1,25 @@
-function [figs, all_axs, all_labs] = multi_spectra(data, labels, f, t, fcats, pcats, varargin)
+function [figs, all_axs, all_labs, fig_I] = multi_spectra(data, labels, f, t, fcats, pcats, varargin)
+
+%   MULTI_SPECTRA -- Plot multiple figures' worth of spectrograms.
+%
+%     figs = dsp3.multi_spectra( data, labels, f, t, fcats, pcats );
+%     generates multiple figures for each combination of labels in `fcats`
+%     categories. Each figure has panels drawn from combinations of labels
+%     in `pcats` categories. Combinations are generated from the fcat
+%     object `labels`, which must have the same number of rows as `data`.
+%
+%     figs is an array of handles to the generated figures.
+%
+%     [..., axs] = dsp3.multi_spectra(...) also returns a vector of axes
+%     handles to all axes in all `figs`.
+%
+%     [..., labs] = dsp3.multi_spectra(...) also returns a cell array of
+%     label subsets, one for each element in `figs`.
+%
+%     [..., fig_I] = dsp3.multi_spectra(...) also returns a cell array of
+%     index vectors, one for each element in `figs`, identifyig 
+%
+%     See also plotlabeled, fcat
 
 assert_ispair( data, labels );
 
