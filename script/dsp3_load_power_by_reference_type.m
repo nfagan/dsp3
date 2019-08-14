@@ -1,4 +1,4 @@
-function [pwd, labels, f, t] = dsp3_load_power_by_reference_type(conf)
+function [psd, labels, f, t] = dsp3_load_power_by_reference_type(conf)
 
 if ( nargin < 1 || isempty(conf) )
   conf = dsp3.config.load();
@@ -11,6 +11,6 @@ new_subdir = 'targAcq-150-bipolar-derivation-reference';
 old_dir = fullfile( intermediate_dir, old_subdir );
 new_dir = fullfile( intermediate_dir, new_subdir );
 
-[pwd, labels, f, t] = dsp3_load_data_by_reference_type( old_dir, new_dir );
+[psd, labels, f, t] = dsp3_load_data_by_reference_type( old_dir, new_dir );
 
 end
