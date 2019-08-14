@@ -15,7 +15,27 @@ function compare_series(axs, inds, data, p_func, varargin)
 %     are tested: [0.05, 0.01, and 0.001], and a different color is 
 %     assigned to each one.
 %
-%     
+%     dsp3.compare_series( ..., 'name', value ) specifies additional
+%     'name', value paired arguments. These include:
+%
+%       - 'p_levels' (double) -- Vector of p-value thresholds. Each
+%         threshold will be associated with a different color. Default is
+%         [0.05, 0.01, 0.001].
+%       - 'x' (double) -- Vector of values with the same number of elements
+%         as `data` against which significant points will be plotted.
+%         Default is  1:size(data, 2);
+%       - 'color_func' (function_handle) -- Handle to a function that
+%         generates a matrix of colors to associate with each p-value
+%         threshold. Should return an Mx3 matrix where M is the number of p
+%         value thresholds. Default is @hsv.
+%       - 'post_hoc_func' (function_handle) -- Handle to a function that
+%         receives a vector of calculated p-values and returns a vector the
+%         same size, whose values may be modified by e.g. an fdr correction. 
+%         Defaults to a function that simply returns its input unmodified, 
+%         meaning that p-values are uncorrected by default.
+%       - 'fig' (matlab.ui.Figure) -- Handle to the figure in which `axs`
+%         reside. If specified, additional legend entries that would
+%         normally be added for each plotted point will be removed cleanly.
 %
 %     See also plotlabeled, plotlabeled.lines
 

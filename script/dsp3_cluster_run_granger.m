@@ -5,8 +5,8 @@ if ( isempty(gcp('nocreate')) )
   parpool( feature('NumCores') );
 end
 
-min_slice = 45;
-max_slice = 49;
+min_slice = 42;
+max_slice = 44;
 
 conf = dsp3.config.load();
 save_p = fullfile( dsp3.dataroot(conf), 'analyses', 'granger', dsp3.datedir() );

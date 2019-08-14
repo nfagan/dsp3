@@ -1,12 +1,14 @@
+conf = dsp3.config.load();
+
 ct_labels = shared_utils.io.fload( ...
-  fullfile(dsp3.dataroot(), 'analyses', 'cell_type_self_vs_other', '080919', 'choice_or_cued_testing_4_outcomes.mat') );
+  fullfile(dsp3.dataroot(conf), 'analyses', 'cell_type_self_vs_other', '080919', 'choice_or_cued_testing_4_outcomes.mat') );
 cell_type_labels = fcat.from( ct_labels.labels );
 ct_labels.cell_types(strcmp(ct_labels.cell_types, 'self_vs_other_selective')) = {'outcome_selective'};
 ct_labels.cell_types(strcmp(ct_labels.cell_types, 'non_self_vs_other_selective')) = {'non_selective'};
 
 %%
 
-[spikes, events, event_key] = dsp3_ct.load_linearized_sua();
+[spikes, events, event_key] = dsp3_ct.load_linearized_sua( conf );
 
 %%
 
