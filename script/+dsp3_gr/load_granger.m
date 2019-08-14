@@ -5,14 +5,7 @@ if ( nargin < 2 )
 end
 
 granger_p = fullfile( dsp3.dataroot(conf), 'analyses', 'granger', subdir );
-
-granger_full_filepath = fullfile( granger_p, 'granger.mat' );
-
-if ( shared_utils.io.fexists(granger_full_filepath) )
-  granger = shared_utils.io.fload( granger_full_filepath );
-else
-  granger = load_multipart_granger( granger_p );
-end
+granger = load_multipart_granger( granger_p );
 
 end
 
@@ -26,13 +19,27 @@ for i = 1:numel(mats)
     granger = shared_utils.io.fload( mats{i} );
   else
     granger(i) = shared_utils.io.fload( mats{i} );
-    granger(i).f = granger(i).f(1:501);
-    granger(i).t = granger(i).t(1, :);
   end
 end
 
 if ( ~isempty(granger) )
-  granger = shared_utils.struct.soa( granger );
+  out_granger = struct();
+  out_granger.params = { granger.params };
+  out_granger.granger_params = { granger.granger_params };
+  out_granger.data = vertcat( granger.data );
+  out_granger.labels = vertcat( fcat(), granger.labels );
+  out_granger.t = { granger.t };
+  out_granger.f = { granger.f };
+  
+  granger = out_granger;
+else
+  granger = struct();
+  granger.params = struct( [] );
+  granger.granger_params = struct( [] );
+  granger.data = [];
+  granger.labels = fcat();
+  granger.t = {};
+  granger.f = {};
 end
 
 end

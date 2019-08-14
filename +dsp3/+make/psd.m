@@ -11,11 +11,17 @@ lfp_file = params.transform_func( lfp_file );
 data = lfp_file.data;
 
 labels = lfp_file.labels';
-renamecat( labels, 'region', 'regions' );
-renamecat( labels, 'channel', 'channels' );
+
+if ( hascat(labels, 'region') )
+  renamecat( labels, 'region', 'regions' );
+end
+
+if ( hascat(labels, 'channel') )
+  renamecat( labels, 'channel', 'channels' );
+end
 
 if ( params.reference_subtract )
-  [data, labels] = dsp3.ref_subtract( data, labels' );
+  [data, labels] = params.reference_func( data, labels' );
 end
 
 if ( params.filter )
