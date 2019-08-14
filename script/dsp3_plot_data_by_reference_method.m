@@ -1,27 +1,12 @@
-function dsp3_plot_sfcoh_by_reference_method(varargin)
+function dsp3_plot_data_by_reference_method(data, coh_labs, f, t, varargin)
 
 defaults = dsp3.get_common_plot_defaults( dsp3.get_common_make_defaults() );
-defaults.coh = [];
-defaults.labels = [];
-defaults.f = [];
-defaults.t = [];
 defaults.pro_v_anti = true;
 defaults.pro_minus_anti = false;
 
 params = dsp3.parsestruct( defaults, varargin );
 
-coh = params.coh;
-
-if ( isempty(coh) )
-  [coh, coh_labs, f, t] = load_data( params.config );
-else
-  coh = params.coh;
-  coh_labs = params.labels';
-  f = params.f;
-  t = params.t;
-end
-
-assert_ispair( coh, coh_labs );
+assert_ispair( data, coh_labs );
 
 %%
 
@@ -29,7 +14,7 @@ base_mask = get_base_mask( coh_labs );
 
 %%
 
-use_coh = coh;
+use_coh = data;
 use_labs = coh_labs';
 
 %%
@@ -56,12 +41,12 @@ plot_spectra( site_coh, site_labs', f, t, params );
 
 end
 
-function plot_bars(coh, labels, f, t, params)
+function plot_bars(data, labels, f, t, params)
 
 %%
 
 t_ind = t >= 0 & t <= 0.15;
-band_coh = nanmean( coh(:, :, t_ind), 3 );
+band_coh = nanmean( data(:, :, t_ind), 3 );
 band_names = { 'beta', 'new_gamma' };
 
 [band_coh, band_labs] = dsp3.get_band_means( band_coh, labels', f, dsp3.some_bands(band_names), band_names );
@@ -78,13 +63,13 @@ pl.y_lims = [0.68, 0.71];
 
 end
 
-function plot_spectra(coh, labels, f, t, params)
+function plot_spectra(data, labels, f, t, params)
 
 fcats = { 'outcomes' };
 pcats = { 'regions', 'reference_method' };
 pcats = union( pcats, fcats );
 
-[figs, axs, labs] = dsp3.multi_spectra( coh, labels, f, t, fcats, pcats ...
+[figs, axs, labs] = dsp3.multi_spectra( data, labels, f, t, fcats, pcats ...
   , 'f_mask', f >= 10 & f <= 80 ...
   , 't_mask', t >= -0.3 & t <= 0.3 ...
   , 'match_limits', true ...
@@ -109,9 +94,9 @@ save_p = fullfile( dsp3.dataroot(params.config), 'plots', 'sfcoh_by_reference_ty
 
 end
 
-function [coh, coh_labs, f, t] = load_data(conf)
+function [data, coh_labs, f, t] = load_data(conf)
 
-[coh, coh_labs, f, t] = dsp3_load_sfcoh_by_reference_type( conf );
+[data, coh_labs, f, t] = dsp3_load_sfcoh_by_reference_type( conf );
 
 end
 
