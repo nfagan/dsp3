@@ -3,12 +3,15 @@ function [figs, all_axs, all_labs, fig_I] = multi_spectra(data, labels, f, t, fc
 %   MULTI_SPECTRA -- Plot multiple figures' worth of spectrograms.
 %
 %     figs = dsp3.multi_spectra( data, labels, f, t, fcats, pcats );
-%     generates multiple figures for each combination of labels in `fcats`
-%     categories. Each figure has panels drawn from combinations of labels
-%     in `pcats` categories. Combinations are generated from the fcat
-%     object `labels`, which must have the same number of rows as `data`.
-%
-%     figs is an array of handles to the generated figures.
+%     generates multiple figures of spectrograms for each combination of 
+%     labels in `fcats` categories. Each figure has panels drawn from 
+%     combinations of labels in `pcats` categories. Combinations are 
+%     generated from the fcat object `labels`, which must have the same 
+%     number of rows as `data`. `f` is a vector with the same number of
+%     elements as `data` has columns, identifying frequencies of `data`;
+%     `t` is a vector with the same number of elements as `data` has 3-d
+%     slices, identifying time-points of `data`. `figs` is an array of 
+%     handles to the generated figures.
 %
 %     [..., axs] = dsp3.multi_spectra(...) also returns a vector of axes
 %     handles to all axes in all `figs`.
@@ -17,9 +20,35 @@ function [figs, all_axs, all_labs, fig_I] = multi_spectra(data, labels, f, t, fc
 %     label subsets, one for each element in `figs`.
 %
 %     [..., fig_I] = dsp3.multi_spectra(...) also returns a cell array of
-%     index vectors, one for each element in `figs`, identifyig 
+%     index vectors, one for each element in `figs`, identifyig the subset
+%     of rows of `data` and `labels` present in each figure.
 %
-%     See also plotlabeled, fcat
+%     dsp3.multi_spectra( ..., 'name', value ) specifies additional 
+%     name-value paired inputs. Valid inputs are:
+%
+%       - 'mask' (double, uint64) -- Applies a mask to the data and labels
+%         so that combinations are restricted to the rows identified by the
+%         mask.
+%       - 'pl' (plotlabeled) -- Handle to a plotlabeled object to use to
+%         generate spectra. By default, a new plotlabeled object will be
+%         created for each figure.
+%       - 'f_mask' (double, logical) -- Mask vector used to select
+%       	elements of `data` in the frequency (2nd) dimension. Defaults to
+%       	all slices of `data`.
+%       - 't_mask' (double, logical) -- Mask vector used to select elements
+%         of `data` in the time (3rd) dimension. Defaults to all slices of
+%         `data`.
+%       - 'match_limits' (logical) -- True if color limits should be
+%         matched across all figures and axes. Default is false.
+%       - 'configure_pl_func' (function_handle) -- Handle to a function
+%         that accepts a plotlabeled object as an input and returns no
+%         outputs. You can pass in a custom function handle to
+%         pre-configure the object before generating spectra.
+%       - 'c_lims' (double) -- 2-element vector specifying axes color
+%         limits.
+%
+%     See also plotlabeled, plotlabeled.imagesc,
+%     plotlabeled.make_spectrogram, fcat
 
 assert_ispair( data, labels );
 

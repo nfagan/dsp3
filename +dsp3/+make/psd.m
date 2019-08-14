@@ -35,7 +35,13 @@ windowed_data = shared_utils.array.bin3d( data, window_size, step_size );
 time_series = shared_utils.vector.slidebin( lfp_file.t, window_size, step_size, true );
 time_series = cellfun( @(x) x(1), time_series );
 
-assert( numel(time_series) == size(windowed_data, 3), 'Time series mismatch.' );
+if ( ~isempty(windowed_data) )
+  assert( numel(time_series) == size(windowed_data, 3), 'Time series mismatch.' );
+else
+  time_series = [];
+  f = [];
+end
+
 num_time_bins = numel( time_series );
 
 for i = 1:num_time_bins  
