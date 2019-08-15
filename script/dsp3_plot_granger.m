@@ -35,8 +35,8 @@ end
 f = guard_empty( granger.f, @(f) f{1}(1:501) );
 t = guard_empty( granger.t, @(t) t{1}(1, :) );
 
-plot_spectra( site_dat, site_labs', f, t, params );
 plot_lines( site_dat, site_labs', f, t, params );
+plot_spectra( site_dat, site_labs', f, t, params );
 
 end
 
@@ -79,44 +79,18 @@ for idx = 1:2
     mask_inputs = { @find, {'beta', 'new_gamma'} };
   end
   
-  pl = plotlabeled.make_common();
-  pl.x = x;
-  
   plt_mask = fcat.mask( labs, mask_inputs{:} );
   
-  fig_I = findall_or_one( labs, fcats, plt_mask );  
-  figs = gobjects( size(fig_I) );
-  all_axs = cell( size(fig_I) );
-  fig_labs = cell( size(fig_I) );
+  post_plot_func = @(fig, axs, ~, inds, data, ~) dsp3.compare_series(axs, inds, data, @ranksum ...
+    , 'x', x, 'fig', fig ...
+  );
   
-  for i = 1:numel(fig_I)
-    pl.fig = figure(i);
-    
-    fig_ind = fig_I{i};
-    
-    plt_dat = dat(fig_ind, :);
-    plt_labs = prune( labs(fig_ind) );
-    
-    [axs, ~, inds] = pl.lines( plt_dat, plt_labs, gcats, pcats );
-    
-    try 
-      dsp3.compare_series( axs, inds, plt_dat, @ranksum ...
-        , 'x', pl.x ...
-        , 'fig', pl.fig ...
-      );
-    catch err
-      warning( err.message );
-    end
-    
-    figs(i) = pl.fig;
-    all_axs{i} = axs;
-    fig_labs{i} = plt_labs;
-  end
-  
-  if ( params.match_ylims )
-    axs = vertcat( all_axs{:} );
-    shared_utils.plot.match_ylims( axs );
-  end
+  [figs, fig_labs] = dsp3.multi_lines( dat, labs, fcats, gcats, pcats ...
+    , 'mask', plt_mask ...
+    , 'configure_pl_func', @(pl) set_property(pl, 'x', x) ...
+    , 'post_plot_func', post_plot_func ...
+    , 'match_limits', params.match_ylims ...
+  );
   
   if ( params.do_save )
     save_p = get_save_p( params, 'lines' );
@@ -142,53 +116,21 @@ function plot_spectra(site_dat, site_labs, f, t, params)
 f_ind = f >= 10 & f <= 80;
 t_ind = t >= -300 & t <= 300;
 
-plt_f = f(f_ind);
-plt_t = t(t_ind);
-
-pl = plotlabeled.make_spectrogram( plt_f, plt_t );
-
-plt_labs = site_labs';
-plt_dat = site_dat(:, f_ind, t_ind);
-
 pcats = { 'regions', 'outcomes' };
 fcats = { 'outcomes' };
 
-fig_I = findall_or_one( plt_labs, fcats );
-all_axs = cell( size(fig_I) );
-all_labs = cell( size(fig_I) );
-figs = gobjects( size(fig_I) );
-
-for i = 1:numel(fig_I)
-  fig_dat = plt_dat(fig_I{i}, :, :);
-  fig_labs = prune( plt_labs(fig_I{i}) );
-  
-  if ( params.match_clims )
-    figs(i) = figure(i);
-  end
-  
-  pl.fig = figs(i);
-
-  axs = pl.imagesc( fig_dat, fig_labs, pcats );
-  shared_utils.plot.fseries_yticks( axs, round(flip(plt_f)), 5 );
-  shared_utils.plot.tseries_xticks( axs, plt_t, 5 );
-
-  shared_utils.plot.hold( axs, 'on' );
-  shared_utils.plot.add_vertical_lines( axs, find(plt_t == 0) );
-  
-  all_axs{i} = axs;
-  all_labs{i} = fig_labs;
-end
-
-if ( params.match_clims )
-  shared_utils.plot.match_clims( vertcat(all_axs{:}) );
-end
+[figs, axs, labs] = dsp3.multi_spectra( site_dat, site_labs, f, t, fcats, pcats ...
+  , 'f_mask', f_ind ...
+  , 't_mask', t_ind ...
+  , 'match_limits', params.match_clims ...
+);
 
 if ( params.do_save )
   save_p = get_save_p( params, 'spectra' );
   
   for i = 1:numel(figs)
     shared_utils.plot.fullscreen( figs(i) );
-    dsp3.req_savefig( figs(i), save_p, all_labs{i}, [pcats, fcats] );
+    dsp3.req_savefig( figs(i), save_p, labs{i}, [pcats, fcats] );
   end
 end
 

@@ -3,6 +3,7 @@ function dsp3_plot_data_by_reference_method(data, coh_labs, f, t, varargin)
 defaults = dsp3.get_common_plot_defaults( dsp3.get_common_make_defaults() );
 defaults.pro_v_anti = true;
 defaults.pro_minus_anti = false;
+defaults.prefix = '';
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -19,7 +20,7 @@ use_labs = coh_labs';
 
 %%
 
-site_spec = dsp3_ct.site_specificity();
+site_spec = intersect( dsp3_ct.site_specificity(), getcats(coh_labs) );
 ref_spec = union( site_spec, {'reference_method'} );
 pa_spec = setdiff( ref_spec, {'outcomes'} );
 
@@ -52,14 +53,31 @@ band_names = { 'beta', 'new_gamma' };
 [band_coh, band_labs] = dsp3.get_band_means( band_coh, labels', f, dsp3.some_bands(band_names), band_names );
 
 fcats = {};
-pcats = { 'regions', 'bands' };
+pcats = {'regions', 'bands'};
 xcats = { 'outcomes' };
 gcats = { 'reference_method' };
 
 pl = plotlabeled.make_common();
 pl.x_order = { 'self', 'both', 'other', 'none' };
-pl.y_lims = [0.68, 0.71];
-[figs, axs] = pl.figures( @errorbar, band_coh, band_labs, fcats, xcats, gcats, pcats );
+[figs, axs, inds] = pl.figures( @bar, band_coh, band_labs, fcats, xcats, gcats, pcats );
+
+anova_outs = dsp3.anovan( band_coh, band_labs, {'regions', 'bands'}, {'reference_method', 'outcomes'} );
+
+if ( params.do_save )
+  labs = cellfun( @(x) band_labs(x), inds, 'un', 0 );
+  
+  save_p = get_save_p( params, 'bars' );
+  save_spec = [pcats, gcats, xcats];
+  
+  anova_save_p = fullfile( save_p, 'stats', ternary(params.pro_v_anti, 'pro_v_anti', 'per_outcome') );
+  
+  for i = 1:numel(figs)
+    shared_utils.plot.fullscreen( figs(i) );
+    dsp3.req_savefig( figs(i), save_p, labs{i}, save_spec, params.prefix );
+  end
+  
+  dsp3.save_anova_outputs( anova_outs, anova_save_p, save_spec );
+end
 
 end
 
@@ -71,7 +89,7 @@ pcats = union( pcats, fcats );
 
 [figs, axs, labs] = dsp3.multi_spectra( data, labels, f, t, fcats, pcats ...
   , 'f_mask', f >= 10 & f <= 80 ...
-  , 't_mask', t >= -0.3 & t <= 0.3 ...
+  , 't_mask', t >= -300 & t <= 300 ...
   , 'match_limits', true ...
   , 'configure_pl_func', @(pl) pl.set_property('panel_order', {'pro', 'anti'}) ...
 );
@@ -89,7 +107,7 @@ end
 
 function save_p = get_save_p(params, varargin)
 
-save_p = fullfile( dsp3.dataroot(params.config), 'plots', 'sfcoh_by_reference_type' ...
+save_p = fullfile( dsp3.dataroot(params.config), 'plots', 'data_by_reference_type' ...
   , dsp3.datedir, params.base_subdir, varargin{:} );
 
 end

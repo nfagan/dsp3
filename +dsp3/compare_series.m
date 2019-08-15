@@ -4,8 +4,8 @@ function compare_series(axs, inds, data, p_func, varargin)
 %     line series.
 %
 %     dsp3.compare_series( axs, inds, data, p_func ); tests, for each
-%     column of `data`, whether subsets of that column of `data` are 
-%     significantly different, and plots a star (*) if so.
+%     column of two-dimensional `data`, whether subsets of that column of 
+%     `data` are significantly different, and plots a star (*) if so.
 %
 %     `axs` is an array of axes handles. `inds` is a cell array the same
 %     size as `axs`. Each element of `inds` is itself a cell array, whose

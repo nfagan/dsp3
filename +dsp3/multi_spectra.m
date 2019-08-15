@@ -63,7 +63,7 @@ defaults.c_lims = [];
 
 params = dsp3.parsestruct( defaults, varargin );
 
-fig_I = findall( labels, fcats, params.mask );
+fig_I = findall_or_one( labels, fcats, params.mask );
 figs = gobjects( size(fig_I) );
 all_axs = cell( size(fig_I) );
 all_labs = cell( size(fig_I) );
