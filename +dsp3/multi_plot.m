@@ -132,10 +132,10 @@ for i = 1:numel(fig_I)
   if ( num_outputs_from_plot_func >= 1 )
     axs = plot_func_outputs{1};
   else
-    axs = [];
+    axs = gobjects( 0 );
   end
   
-  all_axs{i} = axs;
+  all_axs{i} = axs(:);
   figs(i) = pl.fig;
   all_labs{i} = fig_labs;
   
