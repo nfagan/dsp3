@@ -1,6 +1,10 @@
 function [new_labels, modified_rows] = dsp3_match_cc_targacq_trial_labels(orig_labels, new_labels)
 
-[orig_I, orig_C] = findall( orig_labels, {'days', 'sessions', 'administration', 'drugs'} );
+new_days = combs( new_labels, 'days' );
+
+[orig_I, orig_C] = findall( orig_labels, {'days', 'sessions', 'administration', 'drugs'} ...
+  , find(orig_labels, new_days) ...
+);
 
 allowed_to_mismatch = { 'blocks', 'sessions', 'administration', 'epochs', 'sites' };
 cats_to_unify = { 'blocks', 'sessions', 'administration', 'sites' };

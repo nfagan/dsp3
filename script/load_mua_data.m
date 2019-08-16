@@ -22,10 +22,15 @@ consolidated_data = dsp3.get_consolidated_data();
 
 %%
 
+is_lfp = false;
+
 conf3 = dsp3.config.load();
 
 save_p = 'H:\data\cc_dictator\mua\';
-epochs = { 'targacq', 'reward' };
+epochs = { 'targon' };
+
+mua_cutoffs = conf.SIGNALS.mua_filter_frequencies;
+mua_devs = conf.SIGNALS.mua_std_threshold;
 
 for idx = 1:numel(epochs)
   epoch = epochs{idx};
@@ -40,53 +45,54 @@ for idx = 1:numel(epochs)
   for i = 1:numel(days)
     fprintf( '\n %s (%d of %d)', days{i}, i, numel(days) );
 
-    lfp = io.read( full_loadpath, 'only', days{i} );
+    if ( is_lfp )
+      lfp = io.read( full_loadpath, 'only', days{i} );
 
-    dummy_vec = zeros( shape(lfp, 1), 1 );
+      dummy_vec = zeros( shape(lfp, 1), 1 );
 
-    lfp.trial_stats.min = dummy_vec;
-    lfp.trial_stats.max = dummy_vec;
+      lfp.trial_stats.min = dummy_vec;
+      lfp.trial_stats.max = dummy_vec;
 
-    lfp = dsp2.process.reference.reference_subtract_within_day( lfp );
-    lfp = lfp.filter();
+      lfp = dsp2.process.reference.reference_subtract_within_day( lfp );
+      lfp = lfp.filter();
+    end
+
+    try
+      wideband = io.read( full_loadpath_wideband, 'only', days{i} );
+    catch err
+      warning( err.message );
+      continue;
+    end
     
-        
-        
+    spikes = wideband.filter( 'cutoffs', mua_cutoffs );
+    spikes = spikes.update_range();
+  
+    wideband = wideband.filter();
+    wideband = wideband.update_range();
+    
+    binned_wb = wideband.windowed_data();
+    binned_spk = spikes.windowed_data();
+    
+    one_window_spk = binned_spk{1};
+    one_trial = find( one_window_spk(1, :) );
+    
+    sample_rate = wideband.fs;
+    start_t = wideband.start;
+    stop_t = wideband.stop;
+    window_ms = wideband.window_size;
+    step_ms = wideband.step_size;
+  
+    spikes = dsp2.process.spike.get_mua_psth( spikes, mua_devs );
+    
+    spike_fname = sprintf( 'mua_spikes_%s_%s.mat', days{i}, epoch );
+    
+    
+    save( fullfile(save_p, spike_fname), 'spikes' );
 
-  %   try
-  %     wideband = io.read( full_loadpath_wideband, 'only', days{i} );
-  %   catch err
-  %     warning( err.message );
-  %     continue;
-  %   end
-  %   
-  %   spikes = wideband.filter( 'cutoffs', mua_cutoffs );
-  %   spikes = spikes.update_range();
-  % 
-  %   wideband = wideband.filter();
-  %   wideband = wideband.update_range();
-  %   
-  %   binned_wb = wideband.windowed_data();
-  %   binned_spk = spikes.windowed_data();
-  %   
-  %   one_window_spk = binned_spk{1};
-  %   one_trial = find( one_window_spk(1, :) );
-  %   
-  %   sample_rate = wideband.fs;
-  %   start_t = wideband.start;
-  %   stop_t = wideband.stop;
-  %   window_ms = wideband.window_size;
-  %   step_ms = wideband.step_size;
-  % 
-  %   spikes = dsp2.process.spike.get_mua_psth( spikes, mua_devs );
-  %   
-  %   spike_fname = sprintf( 'mua_spikes_%s_%s.mat', days{i}, epoch );
-  %   
-  %   
-  %   save( fullfile(save_p, spike_fname), 'spikes' );
-
-    lfp_fname = sprintf( 'lfp_%s_%s.mat', days{i}, epoch );
-    save( fullfile(save_p, lfp_fname), 'lfp' );
+    if ( is_lfp )
+      lfp_fname = sprintf( 'lfp_%s_%s.mat', days{i}, epoch );
+      save( fullfile(save_p, lfp_fname), 'lfp' );
+    end
   end
 end
 
