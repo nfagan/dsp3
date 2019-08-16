@@ -1,3 +1,7 @@
+% All files except: lfp_day__05302017_targacq -> 'max_min_lags', inf
+%                   lfp_day__05302017_targacq -> 'max_min_lags', 1e4
+%
+
 repadd( 'mvgc_v1.0' );
 mvgc_startup;
 
@@ -5,8 +9,8 @@ if ( isempty(gcp('nocreate')) )
   parpool( feature('NumCores') );
 end
 
-min_slice = 45;
-max_slice = 49;
+min_slice = 42;
+max_slice = 42;
 
 conf = dsp3.config.load();
 save_p = fullfile( dsp3.dataroot(conf), 'analyses', 'granger', dsp3.datedir() );
@@ -32,6 +36,8 @@ med_model_order = median( model_order_file.model_orders );
 granger_outs = dsp3_gr.run_granger( event_name, med_model_order ...
   , 'is_parallel', false ...
   , 'files_containing', use_files ...
+  , 'verbose', true ...
+  , 'max_min_lags', 1e4 ...
 );
 
 granger_filename = sprintf( 'granger-%d-%d.mat', min_slice, max_slice );

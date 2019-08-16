@@ -11,11 +11,17 @@ lfp_file = params.transform_func( lfp_file );
 data = lfp_file.data;
 
 labels = lfp_file.labels';
-renamecat( labels, 'region', 'regions' );
-renamecat( labels, 'channel', 'channels' );
+
+if ( hascat(labels, 'region') )
+  renamecat( labels, 'region', 'regions' );
+end
+
+if ( hascat(labels, 'channel') )
+  renamecat( labels, 'channel', 'channels' );
+end
 
 if ( params.reference_subtract )
-  [data, labels] = dsp3.ref_subtract( data, labels' );
+  [data, labels] = params.reference_func( data, labels' );
 end
 
 if ( params.filter )
@@ -29,7 +35,14 @@ windowed_data = shared_utils.array.bin3d( data, window_size, step_size );
 time_series = shared_utils.vector.slidebin( lfp_file.t, window_size, step_size, true );
 time_series = cellfun( @(x) x(1), time_series );
 
-assert( numel(time_series) == size(windowed_data, 3), 'Time series mismatch.' );
+if ( ~isempty(windowed_data) )
+  assert( numel(time_series) == size(windowed_data, 3), 'Time series mismatch.' );
+else
+  time_series = [];
+  f = [];
+  complete_psd = [];
+end
+
 num_time_bins = numel( time_series );
 
 for i = 1:num_time_bins  

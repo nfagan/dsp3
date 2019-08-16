@@ -18,6 +18,7 @@ defaults.sample_rate = 1e3;
 defaults.max_lags = [];
 defaults.verbose = false;
 defaults.min_t = 0;
+defaults.max_min_lags = inf;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -80,6 +81,11 @@ for i = 1:numel(pair_I)
       try
         [A, sig] = tsdata_to_var( X, model_order, regression_method );
         [G, info] = var_to_autocov( A, sig, max_lags );
+        
+        if ( info.acminlags > params.max_min_lags )
+          error( 'Min lags (%d) exceeded threshold (%d).', info.acminlags, params.max_min_lags );
+        end
+        
         granger = autocov_to_spwcgc( G, n_freqs );
         
         if ( isempty(granger) )
