@@ -43,6 +43,11 @@ function [figs, all_axs, all_labs, fig_I] = multi_lines(data, labels, fcats, gca
 %         in that figure, a cell array of handles to the plotted lines, a
 %         cell array of cell arrays of index vectors, the data in the
 %         figure, and the labels used to generate the figure.
+%       - 'multiple_figures' (logical) -- True if every combination of
+%         lables in `fcats` categories should be plotted in a separate
+%         figure. Otherwise, only the current figure is used. In that case,
+%         you can use `post_plot_func` to do something with (e.g., save) 
+%         the figure before the next one is plotted. Default is true.
 %
 %     See also plotlabeled, plotlabeled.lines, plotlabeled.make_common, 
 %     dsp3.multi_spectra, dsp3.compare_series, fcat
@@ -56,6 +61,7 @@ defaults.match_limits = false;
 defaults.configure_pl_func = @(pl) 1;
 defaults.y_lims = [];
 defaults.post_plot_func = @(f, axs, hs, inds, data, labels) 1;
+defaults.multiple_figures = true;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -74,7 +80,13 @@ for i = 1:numel(fig_I)
     pl = params.pl;
   end
   
-  pl.fig = figure(i);
+  if ( params.multiple_figures )
+    fig = figure(i);
+  else
+    fig = gcf();
+  end
+  
+  pl.fig = fig;
   pl.y_lims = params.y_lims;
   
   params.configure_pl_func( pl );

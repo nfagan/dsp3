@@ -11,7 +11,9 @@ assert_ispair( data, coh_labs );
 
 %%
 
+profile on;
 base_mask = get_base_mask( coh_labs );
+profile viewer;
 
 %%
 
@@ -112,11 +114,11 @@ save_p = fullfile( dsp3.dataroot(params.config), 'plots', 'data_by_reference_typ
 
 end
 
-function [data, coh_labs, f, t] = load_data(conf)
-
-[data, coh_labs, f, t] = dsp3_load_sfcoh_by_reference_type( conf );
-
-end
+% function [data, coh_labs, f, t] = load_data(conf)
+% 
+% [data, coh_labs, f, t] = dsp3_load_sfcoh_by_reference_type( conf );
+% 
+% end
 
 function base_mask = get_base_mask(labels)
 
