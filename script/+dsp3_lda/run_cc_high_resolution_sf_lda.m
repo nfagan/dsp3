@@ -25,7 +25,7 @@ cont = make_container( data, labels, freqs, t );
 
 %%
 
-to_lda = keep_within_freqs( remove_nans_and_infs(cont), [0, 100] );
+to_lda = remove_nans_and_infs( cont );
 
 n_freqs = size( to_lda.data, 2 );
 
