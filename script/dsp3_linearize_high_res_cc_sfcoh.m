@@ -1,4 +1,4 @@
-function [out_data, out_labels, f, t] = dsp3_linearize_high_res_cc_sfcoh(sfcoh, filename, spike_region, num_conditions, condition_start, subset_start, num_subset)
+function [out_data, out_labels, f, t] = dsp3_linearize_high_res_cc_sfcoh(sfcoh, filename, spike_region, condition_start, num_conditions, subset_start, num_subset)
 
 conditions = { 'self', 'both', 'other', 'none' };
 labels = prune( addcat(fcat.from(sfcoh.labels.labels), {'lfp_channels', 'unit_uuid'}) );

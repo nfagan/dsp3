@@ -95,6 +95,7 @@ subset_mats = mats(1:min(numel(mats), params.max_num_files));
 
 if ( ~hascat(labels, 'contexts') )
   dsp3.add_context_labels( labels );
+  prune( labels );
 end
 
 end

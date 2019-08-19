@@ -11,9 +11,9 @@ src_mats = shared_utils.io.findmat( src_p );
 ts = [ -300, 300 ];
 fs = [ 0, 100 ];
 
-max_per_bin = 50;
+max_per_bin = 10;
 
-for i = 1:31
+for i = 1:numel(src_mats)
   shared_utils.general.progress( i, numel(src_mats) );
   sfcoh_part = load( src_mats{i} );
   
@@ -26,25 +26,32 @@ for i = 1:31
   
   binned_inds = shared_utils.vector.slidebin( 1:num_subset, max_per_bin, max_per_bin );
   
-  combs = combvec( 1:numel(binned_inds), 1:numel(outcomes) );
-  num_combs = size( combs, 2 );
+  cbtns = combvec( 1:numel(binned_inds), 1 );
+  num_combs = size( cbtns, 2 );
+  
+  num_outcomes = 4;
   
   for j = 1:num_combs
-    subset_ind = combs(1, j);
-    outcome_ind = combs(2, j);
+    fprintf( '\n\t %d of %d', j, num_combs );
+    
+    subset_ind = cbtns(1, j);
+    outcome_ind = cbtns(2, j);
     
     subset_start = min( binned_inds{subset_ind} );
     num_subset = numel( binned_inds{subset_ind} );
     
-    [data, labels, f, t] = dsp3_linearize_high_res_cc_sfcoh( sfcoh_part, filename, region, outcome_ind, 1, subset_start, num_subset );
+    [data, labels, f, t] = dsp3_linearize_high_res_cc_sfcoh( sfcoh_part ...
+      , filename, region, outcome_ind, num_outcomes, subset_start, num_subset );
     t_ind = t >= ts(1) & t <= ts(2);
     f_ind = f >= fs(1) & f <= fs(2);
 
     data = data(:, f_ind, t_ind);
     t = t(t_ind);
     f = f(f_ind);
+    
+    outcome_str = strjoin( outcomes(outcome_ind:outcome_ind+num_outcomes-1), '_' );
 
-    dest_filepath = fullfile( dest_p, sprintf('%s-%d-%s.mat', outcomes{outcome_ind}, subset_ind, filename) );
+    dest_filepath = fullfile( dest_p, sprintf('%s-%d-%s.mat', outcome_str, subset_ind, filename) );
     save( dest_filepath, 'data', 'labels', 'f', 't', '-v7.3' );
   end
 end
