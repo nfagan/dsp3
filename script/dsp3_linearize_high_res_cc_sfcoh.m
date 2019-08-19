@@ -1,4 +1,4 @@
-function [out_data, out_labels, f, t] = dsp3_linearize_high_res_cc_sfcoh(sfcoh, filename, spike_region)
+function [out_data, out_labels, f, t] = dsp3_linearize_high_res_cc_sfcoh(sfcoh, filename, spike_region, num_conditions, condition_start, subset_start, num_subset)
 
 conditions = { 'self', 'both', 'other', 'none' };
 labels = prune( addcat(fcat.from(sfcoh.labels.labels), {'lfp_channels', 'unit_uuid'}) );
@@ -19,12 +19,12 @@ else
   channel_ind = find( labels, all_channels(:, 1) );
 end
 
-for i = 1:numel(conditions)
+for i = condition_start:condition_start+num_conditions-1
   cond_ind = find( labels, conditions{i}, channel_ind );
   coh_subset = coh_data{i};
   num_trials = numel( cond_ind );
   
-  for j = 1:numel(coh_subset)
+  for j = subset_start:subset_start+num_subset-1
     pair_c = coh_subset{j}.C;
     combined_data = permute( cat(3, pair_c{:}), [2, 1, 3] );
     assert( rows(combined_data) == num_trials, 'Number of trials mismatch.' );
