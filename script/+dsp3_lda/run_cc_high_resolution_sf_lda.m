@@ -1,18 +1,24 @@
 function run_cc_high_resolution_sf_lda(varargin)
 
 defaults = dsp3.get_common_make_defaults();
-defaults.spike_region = 'acc';
+defaults.spike_regions = 'acc';
 defaults.max_num_files = inf;
+defaults.mask_func = @(labels) rowmask(labels);
+
 params = dsp3.parsestruct( defaults, varargin );
 
-spike_region = validatestring( params.spike_region, {'acc', 'bla'}, mfilename, 'spike_region' );
+spike_regions = cellstr( params.spike_regions );
+
+for i = 1:numel(spike_regions)
+  validatestring( spike_regions{i}, {'acc', 'bla'}, mfilename, 'spike_region' );
+end
 
 repadd( 'dsp3/script' );
 
 dsp2.cluster.init();
 
 load_path = get_load_p( params );
-[load_mats, mat_info] = get_load_mats( load_path, spike_region );
+[load_mats, mat_info] = get_load_mats( load_path, spike_regions );
 [data, labels, freqs, t] = load_data( load_mats, mat_info, params );
 
 labels = fcat.from( labels );
@@ -75,12 +81,17 @@ load_p = fullfile( dsp3.dataroot(params.config), 'analyses' ...
 
 end
 
-function [mats, mat_info] = get_load_mats(load_p, spike_region)
+function [mats, mat_info] = get_load_mats(load_p, spike_regions)
 
 mats = shared_utils.io.findmat( load_p );
 mat_info = dsp3_lda.parse_file_identifiers( mats );
 
-matches_region = strcmp( mat_info.regions, spike_region );
+matches_region = false( size(mats) );
+
+for i = 1:numel(spike_regions)
+  matches_region = matches_region | strcmp( mat_info.regions, spike_regions{i} );
+end
+
 mats = mats(matches_region);
 mat_info = dsp3_lda.keep_file_identifiers( mat_info, matches_region );
 
@@ -99,6 +110,8 @@ if ( ~hascat(labels, 'contexts') )
   dsp3.add_context_labels( labels );
   prune( labels );
 end
+
+data = indexpair( data, labels, params.mask_func(labels) );
 
 end
 

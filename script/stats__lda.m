@@ -24,6 +24,7 @@ defaults.pro_v_anti_ylims = [];
 defaults.lines_v_null_ylims = [];
 defaults.make_figs = true;
 defaults.site_smooth_func = @(x) x;
+defaults.is_high_resolution_sf_coherence = false;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -47,7 +48,8 @@ switch ( underlying_measure )
     % date_dir = '072418';  % per site
     date_dir = get_data_dir( params.specificity );
   case 'sfcoherence'
-    date_dir = get_sf_data_dir( params.specificity, analysis_type, is_cued );
+    date_dir = get_sf_data_dir( params.specificity, analysis_type, is_cued ...
+      , params.is_high_resolution_sf_coherence );
 end
 
 lda_dir = fullfile( conf.PATHS.dsp2_analyses, analysis_type, date_dir );
@@ -77,9 +79,14 @@ params.analysisp = char( dsp3.analysisp(path_components) );
 ldalabs = setdisp( fcat.from(lda.labels), 'short' );
 ldadat = lda.data * 100;  % convert to percent
 freqs = lda.frequencies;
-time = -500:50:500;
 
-if ( strcmp(underlying_measure, 'sfcoherence') )
+if ( ~params.is_high_resolution_sf_coherence )
+  time = -500:50:500;
+else
+  time = -300:5:300;
+end
+
+if ( strcmp(underlying_measure, 'sfcoherence') && ~hascat(ldalabs, 'channels') )
   renamecat( ldalabs, 'sites', 'channels' );
 end
 
@@ -615,7 +622,12 @@ end
 
 end
 
-function date_dir = get_sf_data_dir(spec, analysis_type, is_cued)
+function date_dir = get_sf_data_dir(spec, analysis_type, is_cued, is_high_resolution)
+
+if ( is_high_resolution )
+  date_dir = '082019';
+  return
+end
 
 switch ( spec )
   case 'contexts'
