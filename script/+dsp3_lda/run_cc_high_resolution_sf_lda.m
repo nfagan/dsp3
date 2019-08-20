@@ -37,16 +37,18 @@ base_inputs.analysis_type = 'lda';
 if ( params.is_parallel )
   spmd
     indices = getLocalPart( codistributed(1:n_freqs) );
-
-    start = indices(1);
-    stop = indices(end);
-
-    fprintf( '\n %d : %d', start, stop );
     
-    base_inputs.start = start;
-    base_inputs.stop = stop;
+    if ( ~isempty(indices) )
+      start = indices(1);
+      stop = indices(end);
 
-    dsp2.analysis.lda.script.run_null_lda_cc_sf( to_lda, base_inputs );
+      fprintf( '\n %d : %d', start, stop );
+
+      base_inputs.start = start;
+      base_inputs.stop = stop;
+
+      dsp2.analysis.lda.script.run_null_lda_cc_sf( to_lda, base_inputs );
+    end
   end
   
 else
