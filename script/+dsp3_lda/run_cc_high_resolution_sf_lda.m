@@ -86,10 +86,10 @@ function [mats, mat_info] = get_load_mats(load_p, spike_regions)
 mats = shared_utils.io.findmat( load_p );
 mat_info = dsp3_lda.parse_file_identifiers( mats );
 
-matches_region = false( size(mats) );
+matches_region = false( numel(mats), 1 );
 
 for i = 1:numel(spike_regions)
-  matches_region = matches_region | strcmp( mat_info.regions, spike_regions{i} );
+  matches_region = matches_region | strcmp( mat_info.regions(:), spike_regions{i} );
 end
 
 mats = mats(matches_region);
