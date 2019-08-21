@@ -1,6 +1,6 @@
 bands = dsp3.get_bands( 'map' );
 
-freq_roi_name = 'beta';
+freq_roi_name = 'new_gamma';
 freq_roi = bands(freq_roi_name);
 
 % freq_roi_name = '55_65_gamma';

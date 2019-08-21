@@ -148,6 +148,9 @@ if ( ~params.plot_per_site )
   collapsecat( newlabs, {'channels', 'days'} );
 end
 
+% Stats for pro minus anti lines.
+% pro_minus_anti_stat( newdat, newlabs', x_values, params );
+
 I = findall( newlabs, plot_spec );
 
 for i = 1:numel(I)
@@ -274,6 +277,22 @@ if ( params.do_save )
 %   dsp3.save_ttest2_outputs( context_comparison_outs, comparison_p );
   dsp3.save_ranksum_outputs( context_comparison_outs, comparison_p );
 end
+
+end
+
+function pro_minus_anti_stat(tdata, labels, x_values, params)
+
+t_ind = x_values >= params.stats_time_window(1) & x_values <= params.stats_time_window(2);
+t_data = nanmean( tdata(:, t_ind), 2 );
+
+mask = union( find(labels, {'targAcq', 'choice'}), find(labels, {'targOn', 'cued'}) );
+mask = fcat.mask( labels, mask ...
+  , @find, 'real_percent' ...
+);
+
+each = { 'trialtypes', 'administration', 'days', 'channels', 'regions', 'measure', 'band' };
+
+[pm_data, pm_labels] = dsp3.sbop( t_data, labels', each, 'othernone', 'selfboth', @minus, @(x) nanmean(x, 1) );
 
 end
 

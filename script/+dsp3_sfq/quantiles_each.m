@@ -10,10 +10,10 @@ if ( nargin < 6 )
   mask = rowmask( labs );
 end
 
-each_I = findall( labs, each, mask );
+each_I = findall_or_one( labs, each, mask );
 
 for i = 1:numel(each_I)
-  of_I = findall( labs, quants_of, each_I{i} );
+  of_I = findall_or_one( labs, quants_of, each_I{i} );
   
   tile_ind = vertcat( of_I{:} );
 

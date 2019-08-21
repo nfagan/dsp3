@@ -1,23 +1,31 @@
-is_choice = false;
+% is_choice = true;
+% 
+% trial_type_label = ternary( is_choice, 'choice', 'cued' );
+% event_name = ternary( is_choice, 'targAcq-150-cc', 'targOn-150-cc' );
 
-trial_type_label = ternary( is_choice, 'choice', 'cued' );
-event_name = ternary( is_choice, 'targAcq-150-cc', 'targOn-150-cc' );
+event_names = { 'targAcq-150-cc', 'targOn-150-cc' };
 
 psd_p = dsp3.get_intermediate_dir( 'original_summarized_psd' );
-full_psd_p = fullfile( psd_p, event_name) ;
+full_psd_p = shared_utils.io.fullfiles( psd_p, event_names) ;
 psd_mats = shared_utils.io.findmat( full_psd_p );
 
 [psd, psd_labs, freqs, t] = bfw.load_time_frequency_measure( psd_mats ...
   , 'get_labels_func', @(x) x.labels ...
 );
 
+choice_mask = find( psd_labs, {'targAcq', 'choice'} );
+cued_mask = find( psd_labs, {'targOn', 'cued'} );
+mask = union( choice_mask, cued_mask );
+mask = findnone( psd_labs, 'errors', mask );
+
+psd = rowref( psd, mask );
+keep( psd_labs, mask );
+
 prune( dsp3.add_context_labels(psd_labs) );
 
-if ( ~is_choice )
-  setcat( psd_labs, 'contexts', 'context__received', find(psd_labs, {'self', 'both'}) );
-  setcat( psd_labs, 'contexts', 'context__forgone', find(psd_labs, {'other', 'none'}) );
-  prune( psd_labs );
-end
+setcat( psd_labs, 'contexts', 'context__received', find(psd_labs, {'self', 'both', 'targOn', 'cued'}) );
+setcat( psd_labs, 'contexts', 'context__forgone', find(psd_labs, {'other', 'none', 'targOn', 'cued'}) );
+prune( psd_labs );
 
 %%
 
@@ -59,10 +67,11 @@ shared_utils.plot.add_vertical_lines( axs, find(plt_t == 0) ); %#ok
 %%
 
 save_p = char( dsp3.plotp({'psd_lines', dsp3.datedir}) );
-do_save = true;
+do_save = false;
 
 is_pro_anti = false;
 is_pro_minus_anti = false;
+per_outcome = false;
 
 bands = dsp3.get_bands( 'map' );
 
@@ -80,12 +89,27 @@ if ( is_pro_minus_anti )
   [proanti, proanti_labs] = dsp3.pro_minus_anti( proanti, proanti_labs', proanti_each );
 end
 
+fcats = { 'contexts' };
+
+if ( is_pro_minus_anti )
+  gcats = { 'outcomes', 'regions' };
+  pcats = { 'trialtypes', 'bands' };
+else
+  gcats = { 'outcomes', 'trialtypes' };
+  pcats = { 'bands', 'regions' };
+end
+
 if ( is_pro_anti )
   pltdat = proanti;
   pltlabs = proanti_labs';
 else
   pltdat = band_dat;
   pltlabs = band_labs';
+end
+
+if ( ~per_outcome )
+  prune( pltlabs );
+  collapsecat( pltlabs, {'contexts', 'outcomes'} );
 end
 
 t_ind = mask_gele( t, -350, 350 );
@@ -98,24 +122,15 @@ pl.add_smoothing = true;
 % pl.y_lims = [ -2.5e-7, 2.5e-7 ];
 
 mask = fcat.mask( pltlabs...
-  , @find, {trial_type_label, 'gamma', 'beta'} ...
+  , @find, {'gamma', 'beta'} ...
   , @findnone, 'errors' ...
 );
 
-fcats = { 'contexts', 'bands' };
 fig_I = findall_or_one( pltlabs, fcats, mask );
 
 for i = 1:numel(fig_I)
   pltdat_ = pltdat(fig_I{i}, t_ind);
   pltlabs_ = prune( pltlabs(fig_I{i}) );
-
-  if ( is_pro_minus_anti )
-    gcats = { 'outcomes', 'regions' };
-    pcats = { 'trialtypes', 'bands' };
-  else
-    gcats = { 'outcomes' };
-    pcats = { 'trialtypes', 'bands', 'regions' };
-  end
 
   axs = pl.lines( pltdat_, pltlabs_, gcats, pcats );
 
@@ -125,4 +140,76 @@ for i = 1:numel(fig_I)
   end
 end
 
+%%
+
+pre0 = t >= -300 & t < 0;
+post0 = t >= 0 & t <= 300;
+
+pre_data = nanmean( pltdat(mask, pre0), 2 );
+post_data = nanmean( pltdat(mask, post0), 2 );
+period_labels = prune( pltlabs(mask) );
+
+addcat( period_labels, 'period' );
+repset( period_labels, 'period', {'before', 'after'} );
+
+periods = [ pre_data; post_data ];
+
+figs = dsp3.multi_plot( @bar, periods, period_labels ...
+  , 'bands', {'contexts', 'bands'}, {'period', 'trialtypes'}, {'outcomes', 'bands', 'regions'} ...
+);
+%%
+
+save_p = char( dsp3.plotp({'psd_hists', dsp3.datedir}) );
+remove_outliers = false;
+n_devs = 3;
+prefix = ternary( remove_outliers, sprintf('%d_outliers_removed', n_devs), 'all_data' );
+do_save = true;
+
+mask = fcat.mask( pltlabs...
+  , @find, {'gamma', 'beta'} ...
+  , @findnone, 'errors' ...
+);
+
+site_spec = setdiff( dsp3_ct.site_specificity(), {'unit_uuid', 'outcomes'} );
+site_spec = union( site_spec, 'bands' );
+[site_labs, site_I] = keepeach( pltlabs', site_spec, mask );
+site_means = bfw.row_nanmean( pltdat, site_I );
+
+peaks = max( site_means, [], 2 );
+
+if ( remove_outliers )
+  check_I = findall( site_labs, {'trialtypes', 'bands', 'regions'} );
+  check_means = bfw.row_nanmean( peaks, check_I );
+  check_devs = rowop( peaks, check_I, @(x) nanstd(x, [], 1) );
+
+  for i = 1:numel(check_I)
+    subset_peaks = peaks(check_I{i});
+    oob = subset_peaks < (check_means(i) - check_devs(i)*n_devs) | ...
+      subset_peaks > (check_means(i) + check_devs(i)*n_devs);
+    check_I{i}(oob) = [];
+  end
+
+  to_keep = vertcat( check_I{:} );
+else
+  to_keep = rowmask( peaks );
+end
+
+[figs, axs, labs] = dsp3.multi_plot( @hist, peaks, site_labs ...
+  , {'bands'}, {'trialtypes', 'bands', 'regions'} ...
+  , 'plot_func_inputs', {100} ...
+  , 'mask', to_keep ...
+);
+
+ks_outs = dsp3.kstest2( peaks, site_labs ...
+  , {'bands', 'regions'}, 'choice', 'cued' ...
+  , 'mask', to_keep ...
+);
+
+if ( do_save )
+  stat_save_p = fullfile( save_p, ternary(remove_outliers, 'outliers_removed', 'with_outliers') );
+  
+  shared_utils.plot.fullscreen( figs );
+  dsp3.req_savefigs( figs, save_p, labs, {'trialtypes', 'bands', 'regions'}, prefix );
+  dsp3.save_kstest_outputs( ks_outs, stat_save_p  );
+end
 
