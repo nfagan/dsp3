@@ -254,7 +254,7 @@ for i = 1:numel(I)
   all_ps = [ all_ps; ps ];
 end
 
-[t, rc] = tabular( stat_labels, 'time_window', {'contexts', 'regions'} );
+[t, rc] = tabular( stat_labels, 'time_window', {'contexts', 'regions', 'band'} );
 p_tbl = fcat.table( cellrefs(all_ps, t), rc{:} );
 
 [d_tbl, ~, d_labels] = ...
@@ -308,7 +308,7 @@ compare_each = { 'trialtypes', 'drugs' ...
 
 I = findall( labels, compare_each, mask );
 
-pm_labs = fcat().setdisp( 'short' );
+pm_labs = fcat();
 pm_dat = [];
 
 for i = 1:numel(I)
@@ -376,7 +376,23 @@ mean_stats = nanmean( pm_dat(:, stats_t_ind), 2 );
 sr_spec = setdiff( compare_each, {'band', 'regions'} );
 sr_labs = add_target_region_band_labels( pm_labs' );
 
-% signrank_outs = dsp3.signrank2( mean_stats, sr_labs', sr_spec, 'beta_region', 'gamma_region' );
+try
+  compare_beta_gamma_signrank_outs = dsp3.signrank2( mean_stats, sr_labs', sr_spec, 'beta_region', 'gamma_region' );
+  compare_to_0_outs = dsp3.signrank1( mean_stats, sr_labs', compare_each ...
+    , 'mask', findor(sr_labs, {'beta_region', 'gamma_region'}) );
+
+  if ( params.do_save )
+    prefix = sprintf( '%d_%dms__', stats_t_window(1), stats_t_window(2) );
+
+    beta_gamma_p = fullfile( params.analysisp, 'compare_beta_gamma' );
+    to_0_p = fullfile( params.analysisp, 'compare_to_0' );
+
+    dsp3.save_signrank1_outputs( compare_beta_gamma_signrank_outs, beta_gamma_p, {}, prefix );
+    dsp3.save_signrank1_outputs( compare_to_0_outs, to_0_p, {}, prefix );
+  end
+catch err
+  warning( err.message );
+end
 
 end
 

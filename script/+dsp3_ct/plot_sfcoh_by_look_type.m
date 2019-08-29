@@ -187,6 +187,9 @@ end
 
 %%  stat frequency windows
 
+analysis_p = char( dsp3.analysisp({'sfcoh_by_gaze', dsp3.datedir}) );
+analysis_p = fullfile( analysis_p, 'compare_within_band' );
+
 f_ind = freqs >= 10 & freqs <= 80;
 t_ind = t >= 0 & t <= 150;
 
@@ -210,6 +213,8 @@ ind2 = find( rs_outs.rs_labels, {'beta', 'bla_acc'} );
 
 outs = rs_outs;
 [outs.rs_tables, outs.rs_labels] = indexpair( outs.rs_tables, outs.rs_labels', [ind1; ind2] );
+
+dsp3.save_ranksum_outputs( outs, analysis_p );
 
 %%  lines
 

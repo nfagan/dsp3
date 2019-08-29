@@ -10,12 +10,6 @@ function params = parsestruct(params, args)
 %     params = parsestruct( S, {S2} ) where `S2` is a struct, assigns the
 %     values of `S2` to the corresponding fields of `S`. All fields of `S2`
 %     must be fields of `S`, but `S` can have additional fields.
-%
-%     IN:
-%       - `params` (struct)
-%       - `args` (cell)
-%     OUT:
-%       - `params` (struct)
 
 try
   params = shared_utils.general.parsestruct( params, args );
