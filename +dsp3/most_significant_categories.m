@@ -10,7 +10,7 @@ function c = most_significant_categories(labs, n)
 %     order with respect to the number of unique entries in each.
 %
 %     If fewer than `n` categories are non-uniform, then `cs` will contain 
-%     some non-uniform categories. If `n` is larger than the number of
+%     some uniform categories. If `n` is larger than the number of
 %     categories in `labels`, `cs` will be the complete set of categories
 %     of `labels` (i.e., no error is thrown).
 %

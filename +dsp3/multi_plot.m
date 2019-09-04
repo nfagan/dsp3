@@ -28,26 +28,44 @@ function [figs, all_axs, all_labs, fig_I, outs] = multi_plot(plot_func, data, la
 %       - 'mask' (double, uint64) -- Applies a mask to the data and labels
 %         so that combinations are restricted to the rows identified by the
 %         mask.
+%
 %       - 'pl' (plotlabeled) -- Handle to a plotlabeled object to use to
 %         generate plots. By default, a new plotlabeled object will be
 %         created for each figure.
+%
 %       - 'match_limits' (logical) -- True if x-, y- and color-limits 
 %         should be matched across all figures and axes. Default is false.
+%
 %       - 'configure_pl_func' (function_handle) -- Handle to a function
 %         that accepts a plotlabeled object as an input and returns no
 %         outputs. You can pass in a custom function handle to
 %         pre-configure the object before generating each figure.
+%
 %       - 'x_lims' (double) -- 2-element vector specifying axes x
 %         limits. Default is [];
+%
 %       - 'y_lims' (double) -- 2-element vector specifying axes y
 %         limits. Default is [].
+%
 %       - 'clims' (double) -- 2-element vector specifying axes color
 %         limits. Default is []. 
+%
 %       - 'plot_func_inputs' (cell array) -- Additional inputs to be passed
 %         to the call to `plot_func`. Default is an empty cell array ({}).
+%
 %       - 'num_outputs_from_plot_func' (double) -- Number of outputs to
 %         request from 'plot_func'. Default is 1. Alternatively, can be the
 %         char vector 'all' to request all possible outputs of `plot_func`.
+%
+%       - 'pre_plot_func' (function_handle) -- Handle to a function to be
+%         called just before the figure is generated. It accepts 4 inputs:
+%         the subset of data to be plotted, the corresponding labels for
+%         that subset, the specificity of the plot (i.e., all category
+%         specifiers), and the mask into the input data used to select
+%         the current subset. The function should return 2 outputs: the
+%         (potentially updated) data and labels to be used to generate the 
+%         plot.
+%
 %       - 'post_plot_func' (function_handle) -- Handle to a function to be
 %         called each time a figure is generated. It accepts at least 5 
 %         inputs: a handle to the generated figure, the subset of `data` 
@@ -58,6 +76,7 @@ function [figs, all_axs, all_labs, fig_I, outs] = multi_plot(plot_func, data, la
 %         the plotted subset. This function will additionally receive the 
 %         outputs of `plot_func`, as many as were requested with 
 %         'num_outputs_from_plot_func'.
+%
 %       - 'multiple_figures' (logical) -- True if every combination of
 %         lables in `fcats` categories should be plotted in a separate
 %         figure. Otherwise, only the current figure is used. In that case,
@@ -96,9 +115,15 @@ defaults.r_lims = [];
 defaults.num_outputs_from_plot_func = 1;
 defaults.plot_func_inputs = {};
 defaults.post_plot_func = @(varargin) 1;
+defaults.pre_plot_func = @(varargin) deal(varargin{1:2});
 defaults.multiple_figures = true;
+defaults.consolidate_outputs = false;
 
 params = dsp3.parsestruct( defaults, varargin );
+
+if ( params.consolidate_outputs )
+  nargoutchk( 0, 1 );
+end
 
 num_outputs_from_plot_func = get_num_outputs_from_plot_func( plot_func, params );
 plot_func_inputs = params.plot_func_inputs;
@@ -132,6 +157,8 @@ for i = 1:numel(fig_I)
   assign_limits( pl, params );
   params.configure_pl_func( pl );
   
+  [fig_dat, fig_labs] = params.pre_plot_func( fig_dat, fig_labs, full_specificity, fig_ind );
+  
   plot_func_outputs = {};
   [plot_func_outputs{1:num_outputs_from_plot_func}] = ....
     plot_func( pl, fig_dat, fig_labs, cat_spec{:}, plot_func_inputs{:} );
@@ -162,10 +189,21 @@ if ( params.match_limits )
   attempt( @() shared_utils.plot.match_rlims(all_axs) );
 end
 
-if ( nargout > 4 )  
+if ( nargout > 4 && ~params.consolidate_outputs )  
   outs = struct();
   outs.full_specificity = full_specificity;
   outs.partial_specificity = partial_specificity;
+  
+elseif ( params.consolidate_outputs )
+  outs = struct();
+  outs.figs = figs;
+  outs.axs = all_axs;
+  outs.labels = all_labs;
+  outs.inds = fig_I;
+  outs.full_specificity = full_specificity;
+  outs.partial_specificity = partial_specificity;
+  
+  figs = outs;
 end
 
 end
