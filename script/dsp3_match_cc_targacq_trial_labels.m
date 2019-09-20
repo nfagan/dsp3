@@ -3,7 +3,7 @@ function [new_labels, modified_rows] = dsp3_match_cc_targacq_trial_labels(orig_l
 new_days = combs( new_labels, 'days' );
 
 [orig_I, orig_C] = findall( orig_labels, {'days', 'sessions', 'administration', 'drugs'} ...
-  , find(orig_labels, new_days) ...
+  , findor(orig_labels, new_days) ...
 );
 
 allowed_to_mismatch = { 'blocks', 'sessions', 'administration', 'epochs', 'sites' };
@@ -42,6 +42,7 @@ for i = 1:numel(orig_I)
       orig_day_labels = categorical( orig_labels, cats_to_check, orig_channel_ind );
       new_day_labels = categorical( new_labels, cats_to_check, new_channel_ind );
       
+%       try
       assert( all(all(orig_day_labels == new_day_labels)), 'Trial labels mismatch' );
       
       orig_values = cellstr( orig_labels, cats_to_unify, orig_channel_ind );
