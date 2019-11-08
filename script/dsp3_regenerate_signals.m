@@ -59,7 +59,9 @@ for idx = 1:numel(sessions)
       error( 'Unhandled epoch "%s".', event_name );
   end
 
-  [matched_dat, matched_labs] = dsp3.ref_subtract( use_signals.data, matched_labs );
+  if ( params.reference_subtract )
+    [matched_dat, matched_labs] = dsp3.ref_subtract( use_signals.data, matched_labs );
+  end
 
   use_signals = set_data_and_labels( use_signals, matched_dat, SparseLabels.from_fcat(matched_labs) );
   [day_I, day_C] = findall( matched_labs, 'days' );
@@ -70,7 +72,10 @@ for idx = 1:numel(sessions)
     log_ind = trueat( matched_labs, day_I{i} );
 
     subset = use_signals(log_ind);
-    subset.data = dsp3.zpfilter( subset.data, params.f1, params.f2, params.sample_rate, params.filter_order );
+    
+    if ( params.filter )
+      subset.data = dsp3.zpfilter( subset.data, params.f1, params.f2, params.sample_rate, params.filter_order );
+    end
 
     if ( params.per_session )
       save_filename = sprintf( 'lfp_%s_%s_%s', day_C{i}, strjoin(sessions{idx}, '_'), event_name );
@@ -78,7 +83,7 @@ for idx = 1:numel(sessions)
       save_filename = sprintf( 'lfp_%s_%s.mat', day_C{i}, event_name );
     end
     
-    save( fullfile(save_p, save_filename), 'subset' );
+    save( fullfile(save_p, save_filename), 'subset', '-v7.3' );
   end
 end
 
