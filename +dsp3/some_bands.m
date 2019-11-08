@@ -1,4 +1,4 @@
-function band_ranges = some_bands(band_names, varargin)
+function [band_ranges, band_names] = some_bands(band_names, varargin)
 
 narginchk( 1, 3 );
 

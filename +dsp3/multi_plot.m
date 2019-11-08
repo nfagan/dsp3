@@ -157,7 +157,7 @@ for i = 1:numel(fig_I)
   assign_limits( pl, params );
   params.configure_pl_func( pl );
   
-  [fig_dat, fig_labs] = params.pre_plot_func( fig_dat, fig_labs, full_specificity, fig_ind );
+  [fig_dat, fig_labs] = feval( params.pre_plot_func, fig_dat, fig_labs, full_specificity, fig_ind );
   
   plot_func_outputs = {};
   [plot_func_outputs{1:num_outputs_from_plot_func}] = ....
@@ -174,7 +174,7 @@ for i = 1:numel(fig_I)
   all_labs{i} = fig_labs;
   
   try
-    params.post_plot_func( pl.fig, fig_dat, fig_labs, full_specificity, fig_ind, plot_func_outputs{:} );
+    feval( params.post_plot_func, pl.fig, fig_dat, fig_labs, full_specificity, fig_ind, plot_func_outputs{:} );
   catch err
     warning( err.message );
   end

@@ -45,6 +45,9 @@ defaults.comparison_category = 'comparison';
 defaults.alpha = 0.05;
 defaults.descriptive_funcs = dsp3.descriptive_funcs();
 defaults.remove_nonsignificant_comparisons = true;
+defaults.anova_func = @anova1;
+defaults.anova_func_inputs = { 'off' }; % display 'off'
+defaults.use_multcompare_func = @(p, tbl, stats) ~isnan(p) && stats.df > 0;
 
 params = dsp3.parsestruct( defaults, varargin );
 
@@ -52,6 +55,9 @@ mask = params.mask;
 compcat = params.comparison_category;
 alpha = params.alpha;
 funcs = params.descriptive_funcs;
+anova_func = params.anova_func;
+anova_func_inputs = params.anova_func_inputs;
+use_multcompare_func = params.use_multcompare_func;
 
 addcat( labels, compcat );
 
@@ -64,9 +70,9 @@ is_anova_significant = false( numel(I), 1 );
 parfor i = 1:numel(I)
   grp = removecats( categorical(labels, factor, I{i}) );
   
-  [p, tbl, stats] = anova1( data(I{i}), grp, 'off' );
+  [p, tbl, stats] = anova_func( data(I{i}), grp, anova_func_inputs{:} );
   
-  if ( ~isnan(p) && stats.df > 0 )
+  if ( use_multcompare_func(p, tbl, stats) )
     [cc, c] = dsp3.multcompare( stats );
   
     if ( params.remove_nonsignificant_comparisons )
