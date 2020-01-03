@@ -1,7 +1,20 @@
-conf = dsp3.config.load();
-conf.PATHS.data_root = '/Volumes/My Passport/NICK/Chang Lab 2016/dsp3/';
+function dsp3_run_plot_sfcoh_by_spike_quantile(varargin)
 
-[coh, coh_labs, freqs, t] = dsp3_sfq.load_per_day_sfcoh( conf );
+defaults = dsp3.get_common_make_defaults();
+defaults.config = dsp3.set_dataroot( '/Volumes/My Passport/NICK/Chang Lab 2016/dsp3/' );
+defaults.coh = [];
+defaults.coh_labs = fcat();
+defaults.freqs = [];
+defaults.t = [];
+
+params = dsp3.parsestruct( defaults, varargin );
+
+conf = params.config;
+coh = params.coh;
+
+if ( isempty(coh) )
+  [coh, coh_labs, freqs, t] = dsp3_sfq.load_per_day_sfcoh( conf );
+end
 
 %%
 
@@ -83,7 +96,7 @@ prune( to_label );
 
 %%  line plot
 
-do_save = true;
+do_save = false;
 is_pro_minus_anti = true;
 
 save_components = { 'sfcoh_by_quantile', 'by_spikes', dsp3.datedir };
@@ -126,6 +139,8 @@ for ii = 1:numel(fig_I)
   shared_utils.plot.set_xlims( axs, [-300, 300] );
 
   ylabel( axs(1), 'Spike-field coherence' );
+  
+  [tot_n, ns, n_I, n_C] = figure_s3a_n_calculation( subset_labs' );
 
   if ( do_save )
     shared_utils.plot.fullscreen( gcf );
@@ -249,3 +264,18 @@ if ( do_save )
   dsp3.save_anova_outputs( anova_outs, analysis_p, [gcats, pcats] );
 end
 
+end
+
+function [tot_n, ns, I, C] = figure_s3a_n_calculation(labels)
+
+bands = combs( labels, 'bands' );
+[I, C] = findall( labels, {'regions', 'bands', 'quantile'}, find(labels, bands(1)) );
+
+[~, sort_ind] = sort( fcat.parse(C(3, :), 'quantile_') );
+I = I(sort_ind);
+C = C(:, sort_ind);
+
+ns = cellfun( @numel, I );
+tot_n = sum( ns );
+
+end

@@ -187,6 +187,8 @@ no_nans = find( ~isnan(proanti_dat) );
 pltdat = proanti_dat(no_nans);
 pltlabs = keep( proanti_labs', no_nans );
 
+[ns, tot_n, n_I, n_C] = figure_s3b_n_calculation( pltlabs' );
+
 quantiles = fcat.parse( cellstr(proanti_labs, 'quantile', no_nans), 'quantile_' );
 
 [axs, ids] = pl.scatter( quantiles, pltdat, pltlabs, gcats, pcats );
@@ -198,6 +200,20 @@ if ( do_save )
   dsp3.req_savefig( gcf, plot_p, pltlabs, [gcats, pcats], prefix );
 %   dsp3.save_anova_outputs( anova_outs, analysis_p, [gcats, pcats], prefix );
 end
+
+end
+
+function [ns, tot_n, I, C] = figure_s3b_n_calculation(labels)
+
+bands = combs( labels, 'bands' );
+[I, C] = findall( labels, {'regions', 'bands', 'quantile'}, find(labels, bands(1)) );
+
+[~, sort_ind] = sort( fcat.parse(C(3, :), 'quantile_') );
+I = I(sort_ind);
+C = C(:, sort_ind);
+
+ns = cellfun( @numel, I );
+tot_n = sum( ns );
 
 end
 
