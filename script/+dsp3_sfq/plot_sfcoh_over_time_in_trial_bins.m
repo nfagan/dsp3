@@ -33,7 +33,7 @@ base_mask = fcat.mask( use_labs ...
 
 %%
 
-do_save = true;
+do_save = false;
 
 params = struct();
 params.pro_v_anti = true;
@@ -44,7 +44,7 @@ params.restrict_to_minimum = restrict_to_minimum;
 params.base_prefix = base_prefix;
 params.max_bin = 7;
 
-plot_and_regress( coh, use_labs', proanti_each, base_mask, 'sfcoh_over_time', params );
+% plot_and_regress( coh, use_labs', proanti_each, base_mask, 'sfcoh_over_time', params );
 
 %%
 
@@ -55,7 +55,8 @@ params.do_save = do_save;
 params.y_lims = [];
 params.restrict_to_minimum = restrict_to_minimum;
 params.base_prefix = base_prefix;
-params.max_bin = 7;
+% params.max_bin = 7;
+params.max_bin = 9;
 
 plot_and_regress( pref_index, pref_labs', proanti_each, rowmask(pref_labs), 'pref_over_time', params );
 
@@ -124,6 +125,8 @@ for i = 1:numel(fig_I)
   pl.y_lims = dsp3.field_or_default( params, 'y_lims', [] );
   
   axs = pl.errorbar( subset_dat, subset_labs, xcats, gcats, pcats );
+  
+  [count_I, count_C] = findall( subset_labs, {'outcomes', 'trial_bin'} );
   
   if ( do_save )
     shared_utils.plot.fullscreen( gcf );

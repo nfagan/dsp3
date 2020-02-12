@@ -225,6 +225,8 @@ subset_labs = subset_labs(sort_I);
 axs = pl.boxplot( subset_data, subset_labs, {'outcomes'}, {'drugs', 'trialtypes'} );
 % axs = pl.violinplot( subset_data, subset_labs, {'outcomes', 'magnitudes'}, {'drugs', 'trialtypes'} );
 
+figure_1f_n_calculation( prune(subset_labs') );
+
 if ( do_save )
   fname = dsp3.prefix( prefix, dsp3.fname(pltlabs, {'outcomes', 'drugs', 'trialtypes'}) );
   dsp3.savefig( gcf, fullfile(plot_p, fname) );
@@ -309,6 +311,12 @@ if ( dsp3.isdrug(drug_type) )
   end 
   
 end
+
+end
+
+function figure_1f_n_calculation(labels)
+
+[I, C] = findall( labels, {'outcomes'} );
 
 end
 

@@ -1,6 +1,6 @@
-% is_choice = true;
+is_choice = true;
 % 
-% trial_type_label = ternary( is_choice, 'choice', 'cued' );
+trial_type_label = ternary( is_choice, 'choice', 'cued' );
 % event_name = ternary( is_choice, 'targAcq-150-cc', 'targOn-150-cc' );
 
 event_names = { 'targAcq-150-cc', 'targOn-150-cc' };
@@ -69,8 +69,8 @@ shared_utils.plot.add_vertical_lines( axs, find(plt_t == 0) ); %#ok
 save_p = char( dsp3.plotp({'psd_lines', dsp3.datedir}) );
 do_save = false;
 
-is_pro_anti = false;
-is_pro_minus_anti = false;
+is_pro_anti = true;
+is_pro_minus_anti = true;
 per_outcome = false;
 
 bands = dsp3.get_bands( 'map' );
@@ -122,7 +122,7 @@ pl.add_smoothing = true;
 % pl.y_lims = [ -2.5e-7, 2.5e-7 ];
 
 mask = fcat.mask( pltlabs...
-  , @find, {'gamma', 'beta'} ...
+  , @find, {'new_gamma', 'choice'} ...
   , @findnone, 'errors' ...
 );
 
@@ -131,6 +131,8 @@ fig_I = findall_or_one( pltlabs, fcats, mask );
 for i = 1:numel(fig_I)
   pltdat_ = pltdat(fig_I{i}, t_ind);
   pltlabs_ = prune( pltlabs(fig_I{i}) );
+  
+  [n_I, n_C] = findall( pltlabs_, {'bands', 'regions', 'outcomes'} );
 
   axs = pl.lines( pltdat_, pltlabs_, gcats, pcats );
 

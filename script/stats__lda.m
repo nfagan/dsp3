@@ -360,6 +360,10 @@ end
 shared_utils.plot.add_horizontal_lines( axs, 0 );
 shared_utils.plot.add_vertical_lines( axs, 50 );
 
+if ( ~isempty(params.pro_v_anti_ylims) )
+  shared_utils.plot.set_ylims( axs, params.pro_v_anti_ylims );
+end
+
 if ( params.do_save )
   use_plot_p = fullfile( params.plotp, 'pro_minus_anti_lines' );
   

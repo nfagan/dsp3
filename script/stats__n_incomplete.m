@@ -95,11 +95,20 @@ pltlabs = prune( proportion_labels(mask) );
 
 axs = pl.bar( pltdat, pltlabs, xcats, gcats, pcats );
 
+figure_1e_n_calculation( prune(pltlabs') );
+
 if ( params.do_save )
   pltcats = unique( cshorzcat(gcats, pcats) );
   shared_utils.plot.fullscreen( gcf );
   dsp3.req_savefig( gcf, params.plot_p, prune(proportion_labels(mask)), pltcats, 'not-jittered' );
 end
+
+end
+
+function figure_1e_n_calculation(pltlabs)
+
+[I, C] = findall( pltlabs, {'contexts', 'outcomes'} );
+n = unique( cellfun(@numel, I) );
 
 end
 

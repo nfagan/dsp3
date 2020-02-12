@@ -443,5 +443,13 @@ mask = setdiff( find(pltlabs, 'choice'), find(pltlabs, 'errors') );
 
 pl.errorbar( pltdat(mask), pltlabs(mask), xcats, gcats, pcats );
 
+figure_1d_n_calculation( prune(pltlabs(mask)) );
 
+end
 
+function figure_1d_n_calculation(pltlabs)
+
+[I, C] = findall( pltlabs, {'outcomes', 'looks_to'} );
+n = unique( cellfun(@numel, I) );
+
+end

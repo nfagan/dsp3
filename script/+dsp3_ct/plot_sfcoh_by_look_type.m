@@ -1,12 +1,18 @@
-conf = dsp3.set_dataroot( '/Volumes/My Passport/NICK/Chang Lab 2016/dsp3/' );
-[coh, coh_labs, freqs, t] = dsp3_sfq.load_per_day_sfcoh( conf );
+function plot_sfcoh_by_look_type(coh, coh_labs, freqs, t, look_outs)
 
-look_outs = dsp3_find_iti_looks( ...
-    'config', conf ...
-  , 'require_fixation', false ...
-  , 'look_back', -3.3 ...
-  , 'is_parallel', true ...
-);
+if ( nargin == 0 )
+  conf = dsp3.set_dataroot( '/Volumes/My Passport/NICK/Chang Lab 2016/dsp3/' );
+  [coh, coh_labs, freqs, t] = dsp3_sfq.load_per_day_sfcoh( conf );
+
+  look_outs = dsp3_find_iti_looks( ...
+      'config', conf ...
+    , 'require_fixation', false ...
+    , 'look_back', -3.3 ...
+    , 'is_parallel', true ...
+  );
+else
+  conf = dsp3.config.load();
+end
 
 labels = dsp3_add_iti_first_look_labels( look_outs.labels', look_outs, 0.15 );
 
@@ -101,6 +107,8 @@ end
 
 %%  save
 
+do_save_coh = false;
+
 save_mask = fcat.mask( tmp_labs ...
   , @find, {'choice', 'selected-site'} ...
   , @findnone, 'errors' ...
@@ -111,8 +119,10 @@ save_p = fullfile( dsp3.dataroot(conf), 'data', 'sfcoh', 'gaze' );
 save_labs = gather( prune(tmp_labs(save_mask)) );
 save_coh = tmp_coh(save_mask, :, :);
 
-save( fullfile(save_p, 'gaze_sf_coherence.mat') ...
-  , 'save_coh', 'save_labs', 'freqs', 't', '-v7.3' );
+if ( do_save_coh )
+  save( fullfile(save_p, 'gaze_sf_coherence.mat') ...
+    , 'save_coh', 'save_labs', 'freqs', 't', '-v7.3' );
+end
 
 %%
 
@@ -303,6 +313,8 @@ for i = 1:numel(fig_I)
   [axs, hs, inds] = pl.lines( plt_coh, plt_labs, gcats, pcats );
 %   shared_utils.plot.hold( axs, 'on' );
 
+  figure_3ik_n_calculation( plt_labs' );
+
   dsp3.compare_series( axs, inds, plt_coh, @ranksum ...
     , 'x', x ...
   );
@@ -421,4 +433,13 @@ if ( do_save )
     shared_utils.plot.fullscreen( figs(i) );
     dsp3.req_savefig( figs(i), line_p, store_labs{i}, pcats, prefix, formats ); 
   end
+end
+
+end
+
+function figure_3ik_n_calculation(labels)
+
+[I, C] = findall( labels, {'regions', 'looks_to'} );
+n = cellfun( @numel, I );
+
 end
