@@ -29,6 +29,8 @@ if ( nargin < 6 ), ext = '.csv'; end
 
 shared_utils.io.require_dir( p );
 fname = dsp3.prefix( prefix, dsp3.fname(labs, cats) );
+max_filename_size = 128;
+fname = fname(1:min(numel(fname), max_filename_size));
 
 dsp3.writetable( tbl, fullfile(p, fname), ext );
 
