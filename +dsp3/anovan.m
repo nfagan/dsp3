@@ -51,6 +51,7 @@ defaults.anovan_inputs = { 'display', 'off', 'varnames', factors, 'model', 'full
 defaults.dimension = 'auto';
 defaults.remove_nonsignificant_comparisons = true;
 defaults.include_per_factor_descriptives = false;
+defaults.run_multcompare = true;
 
 params = dsp3.parsestruct( defaults, varargin );
 validate_params( params );
@@ -84,6 +85,10 @@ for i = 1:numel(I)
     else
       sig_dims(sig_dims > numel(factors)) = [];
     end
+    
+  elseif ( strcmp(dim, 'significant') )
+    sig_dims = find( p < alpha );
+    
   else
     sig_dims = dim;
   end
@@ -94,17 +99,19 @@ for i = 1:numel(I)
     continue;
   end
   
-  [cc, c] = dsp3.multcompare( stats, 'dimension', sig_dims );
-  
-  issig = c(:, end) < alpha;
-  
-  if ( params.remove_nonsignificant_comparisons )
-    use_comparisons = cc(issig, :);
-  else
-    use_comparisons = cc;
+  if ( params.run_multcompare )
+    [cc, c] = dsp3.multcompare( stats, 'dimension', sig_dims );
+
+    issig = c(:, end) < alpha;
+
+    if ( params.remove_nonsignificant_comparisons )
+      use_comparisons = cc(issig, :);
+    else
+      use_comparisons = cc;
+    end
+
+    c_tbls{i} = dsp3.multcompare_cell2table( use_comparisons );
   end
-  
-  c_tbls{i} = dsp3.multcompare_cell2table( use_comparisons );
 end
 
 tblspec = csunion( spec, factors );
@@ -130,13 +137,16 @@ outs.anova_labels = alabs;
 outs.comparison_tables = c_tbls;
 outs.descriptive_tables = m_tbl;
 outs.descriptive_labels = mlabs;
+outs.each = spec;
+outs.factors = factors;
 
 end
 
-function validate_params(params)
+function params = validate_params(params)
 
 if ( ischar(params.dimension) )
-  assert( strcmpi(params.dimension, 'auto'), 'Dimension must be numeric, or "auto".' );
+  params.dimension = validatestring( params.dimension, {'auto', 'significant'} ...
+    , mfilename );
 end
 
 end

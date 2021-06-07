@@ -78,6 +78,7 @@ outs.sr_labels = tlabs;
 outs.descriptive_tables = m_tbl;
 outs.descriptive_labels = mlabs;
 outs.descriptive_specificity = desc_spec;
+outs.each = spec;
 
 end
 

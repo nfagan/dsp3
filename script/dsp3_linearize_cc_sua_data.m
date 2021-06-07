@@ -12,6 +12,8 @@ all_event_labels = cell( 1, n_events );
 all_spike_times = cell( 1, n_events );
 all_spike_labels = cell( 1, n_events );
 
+unit_id = 1;
+
 for i = 1:n_events
   event_cont = events{i}.event;
   
@@ -30,8 +32,10 @@ for i = 1:n_events
     spike_times{j} = units{j}.data;
     
     unit_info = units{j}.name;
+    unit_labels = make_unit_labels( event_labels, unit_info, mda_filename, j, unit_id );
+    append( spike_labels, unit_labels );
     
-    append( spike_labels, make_unit_labels(event_labels, unit_info, mda_filename, j) );
+    unit_id = unit_id + 1;
   end
   
   all_spike_labels{i} = spike_labels;
@@ -55,17 +59,18 @@ out.spike_labels = spike_labels;
 
 end
 
-function f = make_unit_labels(event_labels, name, mda_filename, index)
+function f = make_unit_labels(event_labels, name, mda_filename, index, id)
 
 reg = name{1};
 chan = name{2};
 
 f = append1( fcat(), event_labels );
 
-additional_categories = { 'regions', 'channels', 'mda_filenames', 'unit_index' };
+additional_categories = { 'regions', 'channels', 'mda_filenames', 'unit_index', 'unit_id' };
 unit_index = sprintf( 'unit_index__%d', index );
+unit_id = sprintf( 'unit_id__%d', id );
 
 addcat( f, additional_categories );
-setcat( f, additional_categories, {reg, chan, mda_filename, unit_index} );
+setcat( f, additional_categories, {reg, chan, mda_filename, unit_index, unit_id} );
 
 end
