@@ -69,9 +69,13 @@ for i = 1:numel(I)
   
   try
     [p, ~, stats] = ranksum( rowref(data, ind_a), rowref(data, ind_b), ranksum_inputs{:} );
+    N = numel( ind_a ) + numel( ind_b );
+    stats.r = abs( stats.zval ) / sqrt( N );
+    
   catch err
     warning( err.message );
-    stats = struct( 'zval', nan, 'ranksum', nan );
+    stats = struct( 'zval', nan, 'ranksum', nan, 'r', nan );
+    p = nan;
   end
   
   stats.p = p;

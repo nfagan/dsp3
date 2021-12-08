@@ -65,9 +65,18 @@ for i = 1:numel(I)
   ind_a = find( labels, a, I{i} );
   ind_b = find( labels, b, I{i} );
   
-  [~, p, ~, stats] = ttest2( rowref(data, ind_a), rowref(data, ind_b), ttest2_inputs{:} );
+  dat_a = rowref( data, ind_a );
+  dat_b = rowref( data, ind_b );  
+  [~, p, ~, stats] = ttest2( dat_a, dat_b, ttest2_inputs{:} );
+  
+  dats = [ dat_a(:); dat_b(:) ];
+  std_dat = std( dats, [], 1 );
+  mean_a = mean( dat_a, 1 );
+  mean_b = mean( dat_b, 1 );
   
   stats.p = p;
+  stats.signed_d = (mean_a - mean_b) / std_dat;
+  stats.abs_d = abs( stats.signed_d );
   
   t_tbls{i} = struct2table( stats );
 end

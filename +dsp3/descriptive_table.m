@@ -72,7 +72,6 @@ repset( rc{2}, desc, names );
 
 tvals = cellfun( @(x) cellrefs(x, t), vals, 'un', 0 );
 tvals = horzcat( tvals{:} );
-
 tbl = sortrows( fcat.table(tvals, rc{:}), 'RowNames' );
 
 end

@@ -1,4 +1,4 @@
-function outs = anovan(data, labels, spec, factors, varargin)
+function outs = anovan2(data, labels, spec, factors, varargin)
 
 %   ANOVAN -- N-Way ANOVA, for each subset.
 %
@@ -40,6 +40,13 @@ function outs = anovan(data, labels, spec, factors, varargin)
 %
 %     See also dsp3.anova1, dsp3.ttest2, dsp3.signrank2
 
+factors = cellstr( factors );
+for i = 1:numel(factors)
+  if ( any(factors{i} == '*') )
+    error( 'Factor names cannot contain reserved symbol `*`.' );
+  end
+end
+
 assert_ispair( data, labels );
 assert_hascat( labels, csunion(spec, factors) );
 
@@ -49,10 +56,9 @@ defaults.alpha = 0.05;
 defaults.descriptive_funcs = dsp3.descriptive_funcs();
 defaults.anovan_inputs = { 'display', 'off', 'varnames', factors, 'model', 'full' };
 defaults.dimension = 'auto';
-defaults.remove_nonsignificant_comparisons = true;
+defaults.only_significant_factor_comparisons = true;
 defaults.include_per_factor_descriptives = false;
-defaults.include_significant_factor_descriptives = false;
-defaults.run_multcompare = true;
+defaults.remove_nonsignificant_comparisons = false;
 
 params = dsp3.parsestruct( defaults, varargin );
 validate_params( params );
@@ -62,7 +68,6 @@ compcat = params.comparison_category;
 alpha = params.alpha;
 funcs = params.descriptive_funcs;
 anovan_inputs = params.anovan_inputs;
-dim = params.dimension;
 
 addcat( labels, compcat );
 
@@ -75,34 +80,28 @@ grp_func = @(x, ind) removecats(categorical(labels, x, ind));
 
 for i = 1:numel(I)
   grps = cellfun( @(x) grp_func(x, I{i}), factors, 'un', 0 );
-  
   [p, tbl, stats] = anovan( data(I{i}), grps, anovan_inputs{:} );
-  
-  if ( strcmp(dim, 'auto') )
-    sig_dims = find( p < alpha );
-    
-    if ( numel(factors) == 2 && any(sig_dims == 2) )
-      sig_dims = 1:2;
-    else
-      sig_dims(sig_dims > numel(factors)) = [];
-    end
-    
-  elseif ( strcmp(dim, 'significant') )
-    sig_dims = find( p < alpha );
-    
-  else
-    sig_dims = dim;
-  end
-  
   a_tbls{i} = dsp3.anova_cell2table( tbl );
   
-  if ( isempty(sig_dims) && params.remove_nonsignificant_comparisons )
-    continue;
+  sig_factors = find( p < alpha );
+  
+  if ( params.only_significant_factor_comparisons )
+    compare_factors = sig_factors;
+  else
+    compare_factors = 1:numel(p);
   end
   
-  if ( params.run_multcompare )
-    [cc, c] = dsp3.multcompare( stats, 'dimension', sig_dims );
-
+  factor_names = tbl(2:end-2, 1);
+  scalar_factors = factor_names(1:numel(factors));
+  scalar_indices = arrayfun( @(x) x, 1:numel(factors), 'un', 0 );
+  interactions = cellfun( @(x) strsplit(x, '*'), factor_names(numel(factors)+1:end), 'un', 0 );
+  interaction_indices = cellfun( @(x) find(ismember(scalar_factors, x)), interactions, 'un', 0 );
+  all_indices = [ scalar_indices(:); interaction_indices(:) ];
+  compare_indices = all_indices(compare_factors);  
+  
+  compare_tbls = cell( numel(compare_indices), 1 );
+  for j = 1:numel(compare_indices)
+    [cc, c] = dsp3.multcompare( stats, 'dimension', compare_indices{j} );
     issig = c(:, end) < alpha;
 
     if ( params.remove_nonsignificant_comparisons )
@@ -110,50 +109,31 @@ for i = 1:numel(I)
     else
       use_comparisons = cc;
     end
-
-    c_tbls{i} = dsp3.multcompare_cell2table( use_comparisons );
+    
+    compare_tbls{j} = dsp3.multcompare_cell2table( use_comparisons );
   end
+  
+  c_tbls{i} = vertcat( compare_tbls{:} );
 end
 
-if ( params.include_significant_factor_descriptives )
-  m_tbl = {};
-  mlabs = {};
-  for i = 1:numel(a_tbls)
-    p_factors = vertcat( a_tbls{i}.Prob_F{:} );
-    factor_strs = a_tbls{i}.Source(1:end-2);
-    sig_factors = factor_strs(p_factors < params.alpha);
-    
-    for j = 1:numel(sig_factors)
-      sig_factor_combs = strsplit( sig_factors{j}, '*' );
-      [curr_tbl, ~, curr_labs] = dsp3.descriptive_table( ...
-        data, labels', sig_factor_combs, funcs, I{i} );
-      m_tbl{end+1, 1} = curr_tbl;
-      mlabs{end+1, 1} = curr_labs;
-    end
-  end
-else
-  tblspec = csunion( spec, factors );
-  [m_tbl, ~, mlabs] = dsp3.descriptive_table( data, labels', tblspec, funcs, mask );
+m_tbls = {};
+mlabs = {};
 
-  if ( params.include_per_factor_descriptives )
-    m_tbl = { m_tbl };
-    mlabs = { mlabs };
+for i = 1:numel(factors)
+  inds = nchoosek( 1:numel(factors), i );
 
-    for i = 1:numel(factors)
-      use_spec = csunion( spec, factors{i} );
-
-      [d_tbl, ~, dlabs] = dsp3.descriptive_table( data, labels', use_spec, funcs, mask );
-
-      m_tbl{end+1, 1} = d_tbl;
-      mlabs{end+1, 1} = dlabs;
-    end
+  for j = 1:size(inds, 1)
+    use_spec = csunion( spec, factors(inds(j, :)) );
+    [d_tbl, ~, dlabs] = dsp3.descriptive_table( data, labels', use_spec, funcs, mask );
+    m_tbls{end+1, 1} = d_tbl;
+    mlabs{end+1, 1} = dlabs;
   end
 end
 
 outs.anova_tables = a_tbls;
 outs.anova_labels = alabs;
 outs.comparison_tables = c_tbls;
-outs.descriptive_tables = m_tbl;
+outs.descriptive_tables = m_tbls;
 outs.descriptive_labels = mlabs;
 outs.each = spec;
 outs.factors = factors;
