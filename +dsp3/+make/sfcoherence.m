@@ -1,6 +1,7 @@
 function out = sfcoherence(files, event_name, spike_ts, spike_labels, varargin)
 
 defaults = dsp3.make.defaults.coherence();
+defaults.verbose = false;
 params = dsp3.parsestruct( defaults, varargin );
 
 lfp_file = shared_utils.general.get( files, event_name );
@@ -22,6 +23,10 @@ all_labels = {};
 f = [];
 
 for i = 1:numel(reg_combs)
+  if ( params.verbose )
+    fprintf( '\n%d of %d', i, numel(reg_combs) );
+  end
+  
   ind_spk = find( spike_labels, reg_combs{i}{1}, units_this_session );
   ind_lfp = find( lfp_labels, reg_combs{i}{2} );
   
@@ -34,6 +39,9 @@ for i = 1:numel(reg_combs)
   num_combs = size( comb_inds, 2 );
   
   for j = 1:num_combs
+    if ( params.verbose )
+      fprintf( '\n\t%d of %d', j, num_combs );
+    end
     comb_ind = comb_inds(:, j);
     
     curr_spk_ind = unit_inds{comb_ind(1)};
@@ -48,6 +56,9 @@ for i = 1:numel(reg_combs)
     assert( num_trials == numel(event_ts), 'Event times mismatch.' );
     
     for k = 1:size(lfp_data, 3)
+      if ( params.verbose )
+        fprintf( '\n\t\t%d of %d', k, size(lfp_data, 3) );
+      end
       data_a = lfp_data(curr_lfp_ind, :, k);
       
       min_t = t(k) - window_size/2;
@@ -55,13 +66,24 @@ for i = 1:numel(reg_combs)
       
       data_b = get_spikes( curr_spk, curr_events, min_t, max_t );
       
-      [C, ~, ~, ~, ~, f] = coherencycpt( data_a', data_b', params.chronux_params );
+      eval_data_a = data_a;
+      eval_data_b = data_b;
+      
+      non_empties = arrayfun( @(x) ~isempty(x.times), data_b );
+      eval_mask = true( size(non_empties) );
+      if ( any(non_empties) )
+        eval_data_a = eval_data_a(non_empties, :);
+        eval_data_b = eval_data_b(non_empties);
+        eval_mask = non_empties;
+      end
+
+      [C, ~, ~, ~, ~, f] = coherencycpt( eval_data_a', eval_data_b', params.chronux_params );
       
       if ( k == 1 )
         tmp_coh = nan( num_trials, numel(f), size(lfp_data, 3) );
       end
       
-      tmp_coh(:, :, k) = C';
+      tmp_coh(eval_mask, :, k) = C';
       spike_counts(:, k) = arrayfun( @(x) numel(x.times), data_b );
     end
     
